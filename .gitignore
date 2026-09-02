@@ -1,0 +1,32 @@
+# Bulk data — multi-GB, sourced from public ANAF/ONRC downloads, never versioned
+data/*.csv
+data/*.csv.csv
+data/*.txt
+data/*.db
+data/*.db-*
+data/.setup_done
+data/csv_version.txt
+
+# Logs
+logs/*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Env / secrets
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code session/tool state
+.claude/

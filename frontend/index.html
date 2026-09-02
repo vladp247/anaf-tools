@@ -1,0 +1,3515 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ANAF Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --bg:#EEF5FF;--surface:#fff;--surface2:#F4F8FF;--surface3:#EBF3FF;
+  --navy:#000082;--navy2:#000050;--dark:#003791;--mid:#0070BF;
+  --pri:#0096FF;--acc:#19AAFE;--brt:#1B1BFF;--lgt:#77CDFF;--pale:#C8EBFF;
+  --border:#C8EBFF;--border2:#DFF0FF;
+  --text:#000050;--t2:#003791;--t3:#0070BF;--t4:#84AABF;
+  --ok:#059669;--ok-bg:#ECFDF5;--err:#DC2626;--err-bg:#FEF2F2;
+  --warn:#D97706;--warn-bg:#FFFBEB;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;--head:'Sora',sans-serif;
+  --r:12px;--r-sm:8px;--r-lg:16px;--r-xl:20px;
+  --sh:0 2px 16px rgba(0,55,145,.07);--sh2:0 6px 28px rgba(0,55,145,.11);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;min-height:100vh}
+a{color:var(--pri);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:var(--mono);background:var(--pale);color:var(--dark);padding:2px 7px;border-radius:5px;font-size:11.5px}
+.hid{display:none!important}
+
+/* ── Setup Modal ──────────────────────────────────────────── */
+#setup-overlay{
+  position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,50,.55);backdrop-filter:blur(4px);padding:20px;
+}
+.setup-box{
+  background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,100,.2);
+  width:100%;max-width:660px;overflow:hidden;
+}
+.setup-hdr{
+  padding:28px 32px 20px;
+  background:linear-gradient(135deg,#000082 0%,#003791 55%,#0096FF 100%);
+  color:#fff;position:relative;overflow:hidden;
+}
+.setup-hdr::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none}
+.setup-logo{font-family:var(--head);font-size:22px;font-weight:800;margin-bottom:4px}
+.setup-sub{font-size:13px;color:var(--pale);opacity:.9}
+.setup-page{padding:26px 32px 28px}
+.setup-age-bar{
+  border-radius:var(--r);padding:14px 18px;margin-bottom:20px;
+  display:flex;align-items:center;gap:12px;border:1.5px solid;
+}
+.age-ok  {background:#F0FDF4;border-color:#86EFAC;color:#166534}
+.age-warn{background:#FFFBEB;border-color:#FCD34D;color:#92400E}
+.age-unk {background:var(--surface2);border-color:var(--border);color:var(--t3)}
+.age-ico {font-size:24px;flex-shrink:0}
+.age-txt h3{font-size:14px;font-weight:700;margin-bottom:2px}
+.age-txt p {font-size:12.5px;opacity:.85}
+.flist{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.frow2{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm)}
+.fstat2{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.fok2{background:var(--ok-bg);color:var(--ok)}.fmiss2{background:var(--err-bg);color:var(--err)}
+.fname2{font-family:var(--mono);font-size:12px;font-weight:600;flex:1;color:var(--text)}
+.fpath2{font-size:11px;color:var(--t4)}
+.setup-dlnote{font-size:12px;color:var(--t3);margin-bottom:20px}
+.setup-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-top:1px solid var(--border);background:var(--surface2)}
+/* Page 2 */
+.idx-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.ic-col{border-radius:var(--r-sm);padding:16px;border:1.5px solid}
+.ic-no{background:#FFF9F0;border-color:#FCD34D}
+.ic-yes{background:#F0FDF4;border-color:#86EFAC}
+.ic-title{font-weight:700;font-size:13px;margin-bottom:10px}
+.ic-item{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0;color:var(--text)}
+.ic-item .dot{font-size:15px}
+
+/* ── Header ──────────────────────────────────────────────── */
+header{
+  height:62px;background:var(--navy);color:#fff;
+  display:flex;align-items:center;padding:0 22px;gap:14px;
+  position:sticky;top:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,50,.35);
+}
+.logo-wrap{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.logo-ico{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:linear-gradient(140deg,var(--pri),var(--lgt));display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;font-size:19px;color:#fff;box-shadow:0 2px 10px rgba(0,150,255,.4)}
+.logo-name{font-family:var(--head);font-size:16px;font-weight:700;color:#fff;white-space:nowrap}
+.logo-tag{font-size:10px;color:var(--pale);text-transform:uppercase;letter-spacing:.8px}
+/* Currency toggle */
+.cur-wrap{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.1);border-radius:8px;padding:2px}
+.cur-btn{border:none;background:transparent;color:var(--pale);font-family:var(--sans);font-size:12px;font-weight:700;padding:5px 11px;border-radius:6px;cursor:pointer;transition:all .15s}
+.cur-btn.on{background:var(--pri);color:#fff;box-shadow:0 1px 6px rgba(0,150,255,.4)}
+.eur-rate-wrap{display:flex;align-items:center;gap:6px;margin-left:4px}
+.eur-rate-lbl{font-size:11px;color:var(--pale);white-space:nowrap}
+.eur-rate-in{width:62px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-family:var(--mono);font-size:12px;text-align:center;padding:0 6px;outline:none}
+.eur-rate-in:focus{border-color:var(--lgt);background:rgba(255,255,255,.15)}
+.eur-rate-in::placeholder{color:rgba(255,255,255,.4)}
+.eur-hist-btn{font-size:10px;color:var(--lgt);cursor:pointer;background:none;border:none;text-decoration:underline;white-space:nowrap}
+/* ONRC chip */
+.onrc-chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;cursor:pointer;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);font-size:11.5px;font-weight:600;color:var(--pale);white-space:nowrap;transition:background .15s;flex-shrink:0}
+.onrc-chip:hover{background:rgba(255,255,255,.15)}
+.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--lgt);flex-shrink:0}
+.chip-dot.green{background:#34D399}.chip-dot.red{background:#F87171}
+.chip-dot.spin{background:transparent;border:2px solid var(--lgt);border-top-color:transparent;animation:rot .7s linear infinite}
+.hdr-date{font-family:var(--mono);font-size:11px;color:var(--pale);white-space:nowrap;opacity:.8}
+
+/* ── ONRC Banner ─────────────────────────────────────────── */
+#banner{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;max-height:0;transition:max-height .35s ease,padding .3s}
+#banner.open{max-height:500px;padding:14px 24px}
+.bn-row{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.bn-ico{font-size:20px;margin-top:1px;flex-shrink:0}
+.bn-body{flex:1;min-width:0}
+.bn-title{font-weight:700;font-size:13px;color:var(--t2)}
+.bn-desc{font-size:12px;color:var(--t3);margin-top:2px}
+.bn-acts{display:flex;gap:7px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+#idx-wrap{margin-top:10px}
+.idx-bar{height:7px;background:var(--pale);border-radius:4px;overflow:hidden}
+.idx-fill{height:100%;background:linear-gradient(90deg,var(--dark),var(--pri),var(--acc));border-radius:4px;transition:width .6s ease}
+.idx-lbl{font-size:11px;color:var(--t3);margin-top:4px;font-family:var(--mono)}
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.tab-bar{display:flex;background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;position:sticky;top:62px;z-index:200;gap:2px}
+.tab{padding:14px 20px 12px;border:none;background:none;cursor:pointer;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--t3);border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+.tab:hover{color:var(--pri)}.tab.on{color:var(--pri);border-bottom-color:var(--pri)}
+
+/* ── Pages ───────────────────────────────────────────────── */
+.pg{display:none}.pg.on{display:block}
+.page{max-width:1100px;margin:0 auto;padding:22px 24px 80px}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:20px}
+.card+.card{margin-top:14px}
+.sh{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+.sh span{font-family:var(--head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:var(--t2);white-space:nowrap}
+.sh::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── Search card ─────────────────────────────────────────── */
+.srch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh2);padding:26px}
+.srch-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.ac-wrap{position:relative;flex:1;min-width:200px}
+#cui-in{width:100%;height:48px;padding:0 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--sans);font-size:14.5px;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+#cui-in:focus{border-color:var(--pri);background:#fff;box-shadow:0 0 0 3px rgba(0,150,255,.13)}
+#cui-in::placeholder{color:var(--t4)}
+.srch-hint{font-size:11.5px;color:var(--t4);margin-top:5px;min-height:16px}
+.srch-hint.mode-cui{color:var(--dark);font-weight:600}
+
+/* Autocomplete */
+#ac-drop{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 32px rgba(0,55,145,.14);z-index:600;max-height:300px;overflow-y:auto}
+.ac-it{display:grid;grid-template-columns:1fr auto;gap:4px;padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--border2);transition:background .1s}
+.ac-it:last-child{border-bottom:none}
+.ac-it:hover,.ac-it.hi{background:var(--surface2)}
+.ac-n{font-weight:600;font-size:13px;color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ac-m{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-c{font-family:var(--mono);font-size:11px;color:var(--pri);white-space:nowrap;padding-top:2px}
+.ac-nil{padding:14px;text-align:center;font-size:12px;color:var(--t4);font-style:italic}
+
+/* ── Year selector ───────────────────────────────────────── */
+.yr-sect{margin-top:18px}
+.yr-top{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.yr-rng{display:flex;align-items:center;gap:8px}
+.yr-lbl-sm{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3)}
+.yr-select{height:34px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface2);color:var(--text);font-family:var(--mono);font-size:13px;padding:0 8px;outline:none;cursor:pointer;transition:border-color .15s}
+.yr-select:focus{border-color:var(--pri)}
+.yr-arr{color:var(--t4);font-size:16px;line-height:1}
+.yr-chips{display:flex;flex-wrap:wrap;gap:5px}
+.yr{padding:4px 11px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--mono);border:1.5px solid var(--border);background:var(--surface2);color:var(--t3);transition:all .12s}
+.yr:hover{border-color:var(--pri);color:var(--pri)}
+.yr.on{background:var(--pri);border-color:var(--pri);color:#fff;box-shadow:0 2px 7px rgba(0,150,255,.28)}
+.yr-qk{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.qk{padding:3px 10px;border-radius:6px;border:1px dashed var(--border);font-size:11.5px;color:var(--t3);cursor:pointer;background:none;transition:all .12s}
+.qk:hover{border-color:var(--pri);color:var(--pri);border-style:solid}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 19px;border-radius:var(--r-sm);font-family:var(--sans);font-size:13.5px;font-weight:600;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.bp{background:var(--pri);color:#fff}.bp:hover{background:var(--acc);box-shadow:0 4px 16px rgba(0,150,255,.3)}
+.bs{background:var(--surface);color:var(--pri);border:1.5px solid var(--pri)}.bs:hover{background:rgba(0,150,255,.05)}
+.bg{background:none;color:var(--t3);border:1.5px solid var(--border)}.bg:hover{border-color:var(--pri);color:var(--pri)}
+.bd{background:var(--err);color:#fff}.bd:hover{background:#B91C1C}
+.bsm{padding:6px 13px;font-size:12.5px}
+.blg{padding:13px 26px;font-size:15px;border-radius:10px}
+button[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ── Company header card ─────────────────────────────────── */
+.co-hdr{background:linear-gradient(135deg,#000082 0%,#003791 45%,#0070BF 100%);color:#fff;border-radius:var(--r-lg);padding:26px;margin-top:22px;position:relative;overflow:hidden}
+.co-hdr::before{content:'';position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none}
+.co-name{font-family:var(--head);font-size:22px;font-weight:800;line-height:1.25;margin-bottom:8px;position:relative}
+.co-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--pale);margin-bottom:16px;position:relative}
+.co-meta .m{display:flex;align-items:center;gap:5px}
+.co-flags{display:flex;flex-wrap:wrap;gap:6px;position:relative}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.b{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.b-ok{background:rgba(52,211,153,.18);color:#6EE7B7;border:1px solid rgba(52,211,153,.3)}
+.b-err{background:rgba(248,113,113,.18);color:#FCA5A5;border:1px solid rgba(252,165,165,.3)}
+.b-inf{background:rgba(119,205,255,.2);color:#93D9FF;border:1px solid rgba(119,205,255,.3)}
+.b-dim{background:rgba(255,255,255,.1);color:var(--pale);border:1px solid rgba(255,255,255,.15)}
+.l-ok{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(5,150,105,.2)}
+.l-err{background:var(--err-bg);color:var(--err);border:1px solid rgba(220,38,38,.2)}
+.l-warn{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(217,119,6,.2)}
+.l-info{background:#EFF6FF;color:var(--dark);border:1px solid rgba(0,55,145,.15)}
+.l-mid{background:var(--bg);color:var(--mid);border:1px solid var(--border)}
+.l-neu{background:var(--surface2);color:var(--t3);border:1px solid var(--border)}
+
+/* ── Detail grid ─────────────────────────────────────────── */
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px}
+.di{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:11px 13px}
+.di label{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:4px}
+.di .v{font-size:13px;color:var(--text);font-weight:500;word-break:break-word}
+.di .v.mono{font-family:var(--mono);font-size:12px}
+.di .v.ok{color:var(--ok);font-weight:700}.di .v.err{color:var(--err);font-weight:700}.di .v.pri{color:var(--pri);font-weight:700}
+.addr-box{margin-top:12px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm)}
+.addr-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:4px}
+.addr-val{font-size:13px;color:var(--text)}
+
+/* ── Stare firmă ─────────────────────────────────────────── */
+.stare-wrap{display:flex;flex-wrap:wrap;gap:7px;padding:14px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)}
+.stare-ok{font-size:13px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:6px;padding:4px 0}
+
+/* ── Rep table ───────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{padding:9px 12px;text-align:left;background:var(--surface2);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border2);color:var(--text);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:var(--bg)}
+.role-chip{display:inline-flex;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;text-transform:capitalize;background:var(--bg);color:var(--dark);border:1px solid var(--border)}
+
+/* ── KPI grid ────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 15px;min-width:0}
+.kpi label{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:6px}
+.kpi-v{font-family:var(--mono);font-size:clamp(14px,2.5vw,20px);font-weight:700;color:var(--text);line-height:1.2;word-break:break-all}
+.kpi-v.ok{color:var(--ok)}.kpi-v.err{color:var(--err)}.kpi-v.pri{color:var(--pri)}
+.kpi-sub{font-size:11px;color:var(--t4);margin-top:4px}
+.kpi-full{font-family:var(--mono);font-size:9.5px;color:var(--t4);margin-top:3px;word-break:break-all}
+
+/* ── CAGR card ───────────────────────────────────────────── */
+.cagr-card{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;background:linear-gradient(135deg,var(--surface2),var(--bg));border:1px solid var(--border);border-radius:var(--r-sm)}
+.cagr-item{flex:1;min-width:160px}
+.cagr-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:4px}
+.cagr-v{font-family:var(--mono);font-size:22px;font-weight:700}
+.cagr-v.pos{color:var(--ok)}.cagr-v.neg{color:var(--err)}.cagr-v.neu{color:var(--t3)}
+.cagr-period{font-size:11px;color:var(--t4);margin-top:3px}
+
+/* ── Charts ──────────────────────────────────────────────── */
+.ch-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.ch-row{grid-template-columns:1fr}}
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.ch-title{font-family:var(--head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ch-title::before{content:'';width:3px;height:13px;background:var(--pri);border-radius:2px;flex-shrink:0}
+.ch-box{position:relative;height:230px}
+.ch-box-lg{position:relative;height:290px}
+.ch-box-xl{position:relative;height:350px}
+
+/* ── Financial table ─────────────────────────────────────── */
+.fin-sc{overflow-x:auto}
+table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
+.fin th{padding:7px 10px;text-align:right;background:var(--surface2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.fin th:first-child{text-align:left}
+.fin td{padding:7px 10px;border-bottom:1px solid var(--border2);text-align:right;font-family:var(--mono);font-size:12px;color:var(--text)}
+.fin td:first-child{text-align:left;font-family:var(--sans);color:var(--t3);font-weight:600;font-size:12.5px}
+.fin tr:hover td{background:var(--bg)}
+.fin .pos{color:var(--ok);font-weight:700}.fin .neg{color:var(--err);font-weight:700}
+.fin .sub-hdr td{background:var(--surface2);font-family:var(--sans);font-weight:700;color:var(--t2);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;padding:5px 10px}
+
+/* ── Bulk ────────────────────────────────────────────────── */
+.bulk-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.bulk-2{grid-template-columns:1fr}}
+.dz{border:2px dashed var(--border);border-radius:var(--r);padding:40px 22px;text-align:center;cursor:pointer;background:var(--surface2);transition:all .15s}
+.dz:hover,.dz.drag{border-color:var(--pri);background:rgba(0,150,255,.04)}
+.dz-ico{font-size:36px;margin-bottom:8px}
+.dz-title{font-weight:600;font-size:14px;color:var(--text);margin-bottom:3px}
+.dz-sub{font-size:12px;color:var(--t3)}
+
+/* Progress */
+.prg-nums{display:flex;align-items:baseline;gap:6px;margin-bottom:12px}
+.prg-big{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--text)}
+.prg-tot{font-size:14px;color:var(--t3)}
+.prg-pct{font-family:var(--mono);font-size:14px;color:var(--pri);margin-left:8px;font-weight:600}
+.prg-eta{flex:1;text-align:right;font-size:12px;color:var(--t4);font-family:var(--mono)}
+.prg-bar{height:9px;background:var(--pale);border-radius:5px;overflow:hidden;margin-bottom:10px}
+.prg-fill{height:100%;background:linear-gradient(90deg,var(--dark),var(--pri));border-radius:5px;transition:width .5s ease}
+.prg-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.pm{text-align:center;padding:10px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)}
+.pm label{display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:4px}
+.pm span{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)}
+.pm span.ok{color:var(--ok)}.pm span.err{color:var(--err)}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.logbox{background:var(--navy2);color:#C8EBFF;border-radius:var(--r-sm);padding:12px;font-family:var(--mono);font-size:11px;line-height:1.7;max-height:160px;overflow-y:auto}
+.logbox p{margin:0;padding:1px 0}.logbox p:last-child{color:#77CDFF}
+
+/* Done section */
+.done-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:680px){.done-kpi{grid-template-columns:repeat(2,1fr)}}
+
+/* Anchor year select */
+.anch-wrap{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.anch-lbl{font-size:12px;color:var(--t3);font-weight:600}
+.anch-sel{height:32px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface2);color:var(--text);font-family:var(--mono);font-size:13px;padding:0 8px;outline:none;cursor:pointer}
+.anch-sel:focus{border-color:var(--pri)}
+
+/* Spinner */
+@keyframes rot{to{transform:rotate(360deg)}}
+.spin{width:18px;height:18px;border:2.5px solid var(--pale);border-top-color:var(--pri);border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0}
+
+/* Toast */
+#toast{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:7px;z-index:9100}
+.ti{padding:10px 15px;border-radius:var(--r-sm);font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.12);animation:slidein .2s;display:flex;align-items:center;gap:7px;max-width:360px}
+.ti-ok{background:var(--ok);color:#fff}.ti-err{background:var(--err);color:#fff}.ti-info{background:var(--dark);color:#fff}
+@keyframes slidein{from{transform:translateX(14px);opacity:0}to{transform:none;opacity:1}}
+
+.empty{text-align:center;padding:40px 22px}
+.empty .ei{font-size:40px;margin-bottom:9px}
+.empty .et{font-size:15px;font-weight:600;color:var(--t3);margin-bottom:4px}
+.empty .es{font-size:12.5px;color:var(--t4)}
+.flex{display:flex;align-items:center;gap:8px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.mono{font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP MODAL ═══════════════════════════════════════════════ -->
+<div id="setup-overlay" class="hid">
+  <div class="setup-box">
+    <div class="setup-hdr">
+      <div class="setup-logo">📊 ANAF Intelligence</div>
+      <div class="setup-sub" id="setup-hdr-sub">Platform Setup</div>
+    </div>
+    <!-- Page 1: Data status -->
+    <div id="sp1" class="setup-page">
+      <div id="sp-age-bar" class="setup-age-bar age-unk">
+        <div class="age-ico" id="sp-age-ico">📦</div>
+        <div class="age-txt"><h3 id="sp-age-h"></h3><p id="sp-age-p"></p></div>
+      </div>
+      <div class="flist" id="sp-flist"></div>
+      <div class="setup-dlnote">
+        Download the latest CSV files from
+        <a href="https://data.gov.ro/organization/onrc" target="_blank" rel="noopener">data.gov.ro/organization/onrc</a>
+        and place them as shown above.
+      </div>
+      <div class="setup-nav">
+        <button class="btn bg bsm" onclick="dismissSetup()">Skip →</button>
+        <button class="btn bp" onclick="goSp2()">Continue →</button>
+      </div>
+    </div>
+    <!-- Page 2: Index explanation -->
+    <div id="sp2" class="setup-page hid">
+      <div class="idx-compare">
+        <div class="ic-col ic-no">
+          <div class="ic-title" style="color:#92400E">⚡ Without ONRC Index</div>
+          <div class="ic-item"><span class="dot">✅</span> ANAF company lookup</div>
+          <div class="ic-item"><span class="dot">✅</span> Financial data 2014–2025</div>
+          <div class="ic-item"><span class="dot">✅</span> Bulk analysis & Excel export</div>
+          <div class="ic-item"><span class="dot">✅</span> CAGR & charts</div>
+          <div class="ic-item"><span class="dot">❌</span> Name search (type to find)</div>
+          <div class="ic-item"><span class="dot">❌</span> Company status (stare firmă)</div>
+          <div class="ic-item"><span class="dot">❌</span> Legal representatives</div>
+          <div class="ic-item"><span class="dot">❌</span> ONRC registry details</div>
+        </div>
+        <div class="ic-col ic-yes">
+          <div class="ic-title" style="color:#166534">🚀 With ONRC Index</div>
+          <div class="ic-item"><span class="dot">✅</span> Everything above, plus:</div>
+          <div class="ic-item"><span class="dot">✅</span> Search by company name</div>
+          <div class="ic-item"><span class="dot">✅</span> Stare firmă (decoded)</div>
+          <div class="ic-item"><span class="dot">✅</span> Legal representatives</div>
+          <div class="ic-item"><span class="dot">✅</span> Full ONRC registry data</div>
+          <div class="ic-item"><span class="dot">✅</span> EUID, website, parent co.</div>
+          <div class="ic-item" style="color:var(--t4);font-size:11.5px;padding-top:6px">One-time process · runs in background</div>
+        </div>
+      </div>
+      <div id="sp2-status" style="margin-bottom:16px;font-size:13px;text-align:center;color:var(--t3)"></div>
+      <div class="setup-nav">
+        <button class="btn bg bsm" onclick="goSp1()">← Back</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn bg bsm" onclick="dismissSetup()">Use without index</button>
+          <button class="btn bp" id="sp-idx-btn" onclick="spStartIdx()">▶ Build Index Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo-ico">A</div>
+    <div>
+      <div class="logo-name">ANAF Intelligence</div>
+      <div class="logo-tag">Romanian Company Analytics</div>
+    </div>
+  </div>
+  <div class="hdr-date" id="hdr-date"></div>
+  <!-- Currency toggle -->
+  <div class="cur-wrap">
+    <button class="cur-btn on" id="btn-ron" onclick="setCur('RON')">RON</button>
+    <button class="cur-btn"    id="btn-eur" onclick="setCur('EUR')">EUR</button>
+  </div>
+  <div class="eur-rate-wrap hid" id="eur-rate-wrap">
+    <span class="eur-rate-lbl" style="font-size:10px;opacity:.75">BNR rates</span>
+    <span id="eur-rate-badge" style="font-family:var(--mono);font-size:11px;color:var(--lgt);cursor:pointer;text-decoration:underline dotted" onclick="toggleRateTable()" title="Show BNR rate table">ⓘ</span>
+  </div>
+  <div class="onrc-chip" id="onrc-chip" onclick="chipClick()">
+    <div class="chip-dot" id="chip-dot"></div>
+    <span id="chip-txt">ONRC</span>
+  </div>
+</header>
+
+<!-- ═══ ONRC BANNER ═════════════════════════════════════════════ -->
+<div id="banner">
+  <div class="bn-row">
+    <div class="bn-ico" id="bn-ico">📁</div>
+    <div class="bn-body">
+      <div class="bn-title" id="bn-title">ONRC Status</div>
+      <div class="bn-desc"  id="bn-desc"></div>
+    </div>
+    <div class="bn-acts" id="bn-acts"></div>
+  </div>
+  <div id="idx-wrap" class="hid">
+    <div class="idx-bar"><div class="idx-fill" id="idx-fill" style="width:0%"></div></div>
+    <div class="idx-lbl" id="idx-lbl"></div>
+  </div>
+</div>
+
+<!-- ═══ TABS ════════════════════════════════════════════════════ -->
+<div class="tab-bar">
+  <button class="tab on" id="tab-c" onclick="setTab('c')">🔍 Company Check</button>
+  <button class="tab"    id="tab-b" onclick="setTab('b')">📊 Bulk Analysis</button>
+  <button class="tab"    id="tab-k" onclick="setTab('k')">🏭 CAEN Analytics</button>
+  <button class="tab"    id="tab-m" onclick="setTab('m')">🔗 Name Matcher</button>
+</div>
+
+<!-- ═══ CHECK PAGE ══════════════════════════════════════════════ -->
+<div id="pg-c" class="pg on"><div class="page">
+  <div class="srch-card">
+    <div class="srch-row">
+      <div class="ac-wrap">
+        <input id="cui-in" type="text" placeholder="CUI number or company name…"
+          autocomplete="off" oninput="onSrch(this)" onkeydown="onSrchKey(event)">
+        <div id="ac-drop" class="hid"></div>
+        <div class="srch-hint" id="srch-hint">Enter a CUI number or start typing a company name</div>
+      </div>
+      <button class="btn bp blg" onclick="doCheck()" id="chk-btn">Look Up</button>
+    </div>
+    <div class="yr-sect" id="c-yr-sect">
+      <div class="yr-top">
+        <div class="yr-rng">
+          <span class="yr-lbl-sm">From</span>
+          <select class="yr-select" id="c-from" onchange="applyRange('c')"></select>
+          <span class="yr-arr">→</span>
+          <span class="yr-lbl-sm">To</span>
+          <select class="yr-select" id="c-to" onchange="applyRange('c')"></select>
+        </div>
+        <div class="yr-qk">
+          <button class="qk" onclick="yrQ('c',3)">Last 3</button>
+          <button class="qk" onclick="yrQ('c',5)">Last 5</button>
+          <button class="qk" onclick="yrA('c')">All</button>
+          <button class="qk" onclick="yrN('c')">None</button>
+        </div>
+      </div>
+      <div class="yr-chips" id="c-yrs"></div>
+    </div>
+  </div>
+  <div id="chk-result"></div>
+</div></div>
+
+<!-- ═══ BULK PAGE ═══════════════════════════════════════════════ -->
+<div id="pg-b" class="pg"><div class="page">
+  <div id="b-setup">
+    <div class="bulk-2">
+      <div class="card">
+        <div class="sh"><span>CSV File</span></div>
+        <div class="dz" id="dz" onclick="document.getElementById('bfile').click()"
+          ondragover="dzDrag(event,1)" ondragleave="dzDrag(event,0)" ondrop="dzDrop(event)">
+          <div class="dz-ico">📄</div>
+          <div class="dz-title" id="dz-ttl">Click or drag CSV here</div>
+          <div class="dz-sub">One CUI per row · header: CUI</div>
+        </div>
+        <input type="file" id="bfile" accept=".csv,.txt" class="hid" onchange="fileChosen(this)">
+        <div class="flex mt8">
+          <a href="/api/template" class="btn bg bsm">⬇ Template</a>
+          <span id="file-info" style="font-size:12px;color:var(--t3)"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh"><span>Financial Years</span></div>
+        <div class="yr-top">
+          <div class="yr-rng">
+            <span class="yr-lbl-sm">From</span>
+            <select class="yr-select" id="b-from" onchange="applyRange('b')"></select>
+            <span class="yr-arr">→</span>
+            <span class="yr-lbl-sm">To</span>
+            <select class="yr-select" id="b-to" onchange="applyRange('b')"></select>
+          </div>
+          <div class="yr-qk">
+            <button class="qk" onclick="yrQ('b',3)">Last 3</button>
+            <button class="qk" onclick="yrQ('b',5)">Last 5</button>
+            <button class="qk" onclick="yrA('b')">All</button>
+          </div>
+        </div>
+        <div class="yr-chips mt8" id="b-yrs"></div>
+        <div class="mt16">
+          <!-- Offline financials toggle -->
+          <div id="offline-fin-row" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:12px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)">
+            <input type="checkbox" id="offline-fin-chk" style="margin-top:2px;width:16px;height:16px;cursor:pointer;flex-shrink:0" onchange="onOfflineToggle()">
+            <div>
+              <label for="offline-fin-chk" style="font-size:12.5px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px">
+                Use offline financials
+                <span style="font-size:10px;background:#EFF6FF;color:var(--dark);padding:2px 7px;border-radius:100px;font-weight:600">FAST</span>
+              </label>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px" id="offline-fin-note">
+                Reads I1–I20 from local txt-file index instead of ANAF bilant API. Seconds instead of minutes. May have minor inaccuracies vs ANAF source.
+              </div>
+            </div>
+          </div>
+
+          <!-- ONRC enrich toggle -->
+          <div id="onrc-enrich-row" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)">
+            <input type="checkbox" id="onrc-enrich-chk" style="margin-top:2px;width:16px;height:16px;cursor:pointer;flex-shrink:0">
+            <div>
+              <label for="onrc-enrich-chk" style="font-size:12.5px;font-weight:700;color:var(--text);cursor:pointer">
+                Enrich with ONRC registry data
+              </label>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px" id="onrc-enrich-note">
+                Adds forma juridică, county, city, address, registration date, parent company country and website from the ONRC dataset. Runs after ANAF — no extra API calls.
+              </div>
+            </div>
+          </div>
+          <button class="btn bp" id="start-btn" onclick="startBulk()" disabled>▶ Start Analysis</button>
+          <div style="font-size:11px;color:var(--t4);margin-top:6px">≈ 1 company / 2 s (ANAF rate limit)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="b-prog" class="hid">
+    <div class="card">
+      <div class="sh"><span id="p-phase-label">Progress</span>
+        <span id="p-mode-badge" style="font-size:10px;padding:2px 8px;border-radius:100px;margin-left:8px;font-weight:600"></span>
+      </div>
+      <div class="prg-nums">
+        <span class="prg-big" id="p-done">0</span>
+        <span class="prg-tot" id="p-tot">/ 0</span>
+        <span class="prg-pct" id="p-pct">0%</span>
+        <span class="prg-eta" id="p-eta"></span>
+      </div>
+      <div class="prg-bar"><div class="prg-fill" id="p-bar" style="width:0%"></div></div>
+      <!-- Live phase message -->
+      <div style="font-size:12px;color:var(--pri);font-family:var(--mono);min-height:16px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="p-msg"></div>
+      <!-- Current company + rate -->
+      <div style="font-size:11.5px;color:var(--t3);min-height:14px;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="p-cur"></div>
+      <div class="prg-meta">
+        <div class="pm"><label>Success</label><span class="ok" id="p-ok">0</span></div>
+        <div class="pm"><label>Failed</label><span class="err" id="p-fail">0</span></div>
+        <div class="pm"><label>Remaining</label><span id="p-rem">0</span></div>
+        <div class="pm"><label>Rate</label><span id="p-rate" style="color:var(--pri)">—</span></div>
+        <div class="pm"><label>Elapsed</label><span id="p-elapsed" style="font-family:var(--mono);font-size:12px">0s</span></div>
+        <div class="pm"><label>ETA</label><span id="p-eta2" style="font-family:var(--mono);font-size:12px;color:var(--t3)">—</span></div>
+      </div>
+    </div>
+    <div class="ctrl mt12">
+      <button class="btn bs bsm" id="btn-pause"  onclick="bPause()">⏸ Pause</button>
+      <button class="btn bg bsm" id="btn-resume" onclick="bResume()" style="display:none">▶ Resume</button>
+      <button class="btn bd bsm" onclick="bCancel()">✖ Cancel</button>
+      <span id="b-status" class="b l-info" style="margin-left:auto"></span>
+    </div>
+    <div class="card" style="padding:13px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:6px">Activity Log</div>
+      <div class="logbox" id="logbox"></div>
+    </div>
+  </div>
+
+  <div id="b-done" class="hid">
+    <div class="card">
+      <div class="flex" style="flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div style="flex:1">
+          <div style="font-family:var(--head);font-size:17px;font-weight:700;color:var(--t2)">Analysis Complete</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px" id="done-sub"></div>
+        </div>
+        <div class="flex" style="flex-wrap:wrap;gap:7px">
+          <button class="btn bp" id="exp-trigger-btn" onclick="openExportModal()">⬇ Export…</button>
+          <button class="btn bg bsm" onclick="dlErr()">⬇ Errors CSV</button>
+          <button class="btn bs bsm" id="btn-retry" onclick="bRetry()">↺ Retry Failed</button>
+          <button class="btn bg bsm" onclick="resetBulk()">↩ New</button>
+        </div>
+      </div>
+      <div class="done-kpi">
+        <div class="kpi"><label>Total CUIs</label><div class="kpi-v" id="d-tot">0</div></div>
+        <div class="kpi"><label>Succeeded</label><div class="kpi-v ok" id="d-ok">0</div></div>
+        <div class="kpi"><label>Failed</label><div class="kpi-v err" id="d-fail">0</div></div>
+        <div class="kpi"><label>Duration</label><div class="kpi-v pri" id="d-time">—</div></div>
+      </div>
+    </div>
+    <div id="a-wrap"></div>
+  </div>
+</div></div>
+
+<!-- ═══ CAEN ANALYTICS PAGE ══════════════════════════════════════ -->
+<style>
+/* ── CAEN-specific styles ─────────────────────────────────────── */
+.caen-search-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh2);padding:26px;margin-bottom:6px}
+.caen-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.caen-ac-wrap{position:relative;flex:1;min-width:180px}
+#caen-in{width:100%;height:48px;padding:0 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s,box-shadow .15s,background .15s;letter-spacing:.5px}
+#caen-in:focus{border-color:var(--pri);background:#fff;box-shadow:0 0 0 3px rgba(0,150,255,.13)}
+#caen-in::placeholder{color:var(--t4);font-size:14px;font-weight:400;letter-spacing:0}
+.caen-desc-hint{font-size:12.5px;color:var(--t3);margin-top:5px;min-height:17px;font-style:italic;transition:all .2s}
+.caen-desc-hint.loaded{font-style:normal;color:var(--dark);font-weight:600}
+#caen-ac-drop{position:absolute;top:calc(100%+5px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 32px rgba(0,55,145,.14);z-index:600;max-height:260px;overflow-y:auto}
+.cac-it{display:flex;align-items:center;gap:10px;padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--border2);transition:background .1s}
+.cac-it:last-child{border-bottom:none}
+.cac-it:hover{background:var(--surface2)}
+.cac-code{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--pri);min-width:46px}
+.cac-name{font-size:12.5px;color:var(--text)}
+
+/* Export indicator modal checkboxes */
+.exp-chk{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);transition:background .1s;user-select:none}
+.exp-chk:hover{background:var(--surface2)}
+.exp-chk input{width:14px;height:14px;cursor:pointer;accent-color:var(--pri);flex-shrink:0}
+.entity-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+.entity-toggle input{display:none}
+.et-chip{padding:5px 11px;border-radius:100px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--surface2);color:var(--t3);transition:all .15s;white-space:nowrap}
+.entity-toggle input:checked + .et-chip{border-color:currentColor}
+.et-commercial{}.entity-toggle[data-type=commercial] input:checked + .et-chip{background:#EFF6FF;color:var(--dark);border-color:var(--dark)}
+.et-sucursala{}.entity-toggle[data-type=sucursala] input:checked + .et-chip{background:#F0FDF4;color:var(--ok);border-color:var(--ok)}
+.et-nonprofit{}.entity-toggle[data-type=nonprofit] input:checked + .et-chip{background:#FFF7ED;color:#C2410C;border-color:#C2410C}
+.et-public{}.entity-toggle[data-type=public] input:checked + .et-chip{background:#F5F3FF;color:#6D28D9;border-color:#6D28D9}
+.et-other{}.entity-toggle[data-type=other] input:checked + .et-chip{background:var(--surface2);color:var(--t3);border-color:var(--t3)}
+/* Entity type badge in top10 */
+.etype-badge{font-size:9.5px;padding:2px 7px;border-radius:100px;font-weight:700;white-space:nowrap;margin-left:5px}
+.etype-commercial{background:#EFF6FF;color:var(--dark)}
+.etype-sucursala{background:#F0FDF4;color:var(--ok)}
+.etype-nonprofit{background:#FFF7ED;color:#C2410C}
+.etype-public{background:#F5F3FF;color:#6D28D9}
+.etype-other{background:var(--surface2);color:var(--t3)}
+.peer-lbl{font-size:11.5px;font-weight:600;color:var(--t3)}
+#peer-cui-in{height:34px;width:140px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--mono);font-size:13px;padding:0 10px;background:var(--surface2);color:var(--text);outline:none;transition:border-color .15s}
+#peer-cui-in:focus{border-color:var(--pri)}
+.peer-info{font-size:11px;color:var(--t4);font-style:italic}
+
+/* CAEN status banner */
+.caen-setup{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.caen-setup-title{font-family:var(--head);font-size:14px;font-weight:700;color:var(--t2);margin-bottom:10px}
+.caen-files{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.caen-frow{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm)}
+.caen-fok{color:var(--ok);font-size:13px;flex-shrink:0}
+.caen-fmiss{color:var(--err);font-size:13px;flex-shrink:0}
+.caen-fname{font-family:var(--mono);font-size:12px;font-weight:600;flex:1}
+.caen-fsize{font-size:11px;color:var(--t4)}
+
+/* Romania MapLibre choropleth */
+.ro-map-container{position:relative;height:420px;border-radius:var(--r);overflow:hidden;background:var(--surface2)}
+.ro-map-container .maplibregl-map{border-radius:var(--r)}
+.ro-map-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--t3);flex-wrap:wrap}
+.ro-map-legend-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;width:140px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ro-map-legend-bar div{flex:1}
+.ro-map-tooltip{
+  position:absolute;z-index:100;background:var(--navy2);color:#fff;
+  padding:8px 12px;border-radius:var(--r-sm);font-size:12.5px;pointer-events:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.2);max-width:200px;display:none;
+}
+
+/* Peer benchmarking card */
+.peer-card{background:linear-gradient(135deg,#F0F7FF,#EBF3FF);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:22px;position:relative;overflow:hidden}
+.peer-card::before{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,150,255,.07);pointer-events:none}
+.peer-rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.rank-item{text-align:center;padding:14px;background:#fff;border-radius:var(--r-sm);border:1px solid var(--border)}
+.rank-num{font-family:var(--mono);font-size:26px;font-weight:800;color:var(--pri)}
+.rank-of{font-size:12px;color:var(--t3);margin-top:2px}
+.rank-pct{font-size:11.5px;font-weight:700;margin-top:4px}
+.rank-pct.top{color:var(--ok)}.rank-pct.mid{color:var(--warn)}.rank-pct.bot{color:var(--err)}
+
+/* Size bucket bars */
+.sz-bars{display:flex;flex-direction:column;gap:8px}
+.sz-row{display:flex;align-items:center;gap:10px}
+.sz-lbl{font-size:12px;font-weight:600;color:var(--t2);width:58px;flex-shrink:0}
+.sz-bar-wrap{flex:1;background:var(--pale);border-radius:4px;height:20px;overflow:hidden}
+.sz-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:10.5px;font-weight:700;color:#fff;transition:width .5s ease}
+.sz-cnt{font-size:12px;color:var(--t3);min-width:40px;text-align:right;font-family:var(--mono)}
+.sz-pct{font-size:11px;color:var(--t4);min-width:38px;text-align:right}
+</style>
+
+<div id="pg-k" class="pg"><div class="page">
+
+  <!-- Setup banner -->
+  <div id="caen-setup-banner" class="hid">
+    <div class="caen-setup">
+      <div class="caen-setup-title" id="csb-title">📂 CAEN Financial Data</div>
+
+      <!-- Per-year × per-source file grid -->
+      <div id="csb-grid" style="margin-bottom:14px"></div>
+
+      <div id="csb-note" style="font-size:12.5px;color:var(--t3);margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bp bsm" id="caen-idx-btn" onclick="startCaenIdx()">▶ Build CAEN Index</button>
+        <a href="https://data.gov.ro/organization/mfinante" target="_blank" rel="noopener" class="btn bg bsm">⬇ Download files →</a>
+      </div>
+      <div id="caen-idx-prog" class="hid" style="margin-top:14px">
+        <div class="idx-bar"><div class="idx-fill" id="caen-idx-fill" style="width:0%"></div></div>
+        <div class="idx-lbl" id="caen-idx-lbl"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search card -->
+  <div class="caen-search-wrap">
+    <div class="caen-row">
+      <div class="caen-ac-wrap">
+        <input id="caen-in" type="text" placeholder="Enter CAEN code (e.g. 6201) or search…"
+          autocomplete="off" oninput="onCaenInput(this)" onkeydown="onCaenKey(event)">
+        <div id="caen-ac-drop" class="hid"></div>
+        <div class="caen-desc-hint" id="caen-desc-hint">Enter a 3-4 digit CAEN code to analyze the sector</div>
+      </div>
+      <button class="btn bp blg" onclick="doCaenAnalyze()" id="caen-btn">Analyze Sector</button>
+    </div>
+
+    <!-- Year range -->
+    <div class="yr-sect" style="margin-top:16px">
+      <div class="yr-top">
+        <div class="yr-rng">
+          <span class="yr-lbl-sm">From</span>
+          <select class="yr-select" id="k-from" onchange="applyRange('k')"></select>
+          <span class="yr-arr">→</span>
+          <span class="yr-lbl-sm">To</span>
+          <select class="yr-select" id="k-to" onchange="applyRange('k')"></select>
+        </div>
+        <div class="yr-qk">
+          <button class="qk" onclick="yrQ('k',3)">Last 3</button>
+          <button class="qk" onclick="yrA('k')">All</button>
+        </div>
+      </div>
+      <div class="yr-chips mt8" id="k-yrs"></div>
+      <div id="caen-yr-warnings" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Entity type filter -->
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border2)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        Entity Types
+        <span id="entity-onrc-note" style="font-weight:400;text-transform:none;letter-spacing:0;font-style:italic;color:var(--t4);font-size:10px"></span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <label class="entity-toggle" data-type="commercial"><input type="checkbox" checked onchange="onEntityToggle()"><span class="et-chip et-commercial">🏢 Commercial</span></label>
+        <label class="entity-toggle" data-type="sucursala"><input type="checkbox" onchange="onEntityToggle()"><span class="et-chip et-sucursala">🌐 Sucursale</span></label>
+        <label class="entity-toggle" data-type="nonprofit"><input type="checkbox" onchange="onEntityToggle()"><span class="et-chip et-nonprofit">🤝 Nonprofits</span></label>
+        <label class="entity-toggle" data-type="public"><input type="checkbox" onchange="onEntityToggle()"><span class="et-chip et-public">🏛 Public</span></label>
+        <label class="entity-toggle" data-type="other"><input type="checkbox" onchange="onEntityToggle()"><span class="et-chip et-other">❓ Other</span></label>
+        <button class="qk" onclick="setAllEntityTypes(true)">All</button>
+        <button class="qk" onclick="setAllEntityTypes(false);document.querySelector('.entity-toggle[data-type=commercial] input').checked=true;onEntityToggle()">Commercial only</button>
+      </div>
+    </div>
+
+    <!-- Peer benchmark -->
+    <div class="peer-row" style="margin-top:10px">
+      <span class="peer-lbl">Peer benchmark CUI:</span>
+      <input id="peer-cui-in" type="text" placeholder="Optional CUI" autocomplete="off">
+      <span class="peer-info">Rank a CUI within this CAEN sector</span>
+    </div>
+  </div>
+
+  <div id="caen-result"></div>
+
+</div></div>
+
+<!-- BNR rate table popup -->
+<div id="rate-popup" style="
+  display:none;position:fixed;top:70px;right:16px;z-index:8000;
+  background:#fff;border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--sh2);padding:16px 18px;min-width:220px;
+">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span style="font-family:var(--head);font-size:12px;font-weight:700;color:var(--navy)">BNR End-of-Year Rates</span>
+    <button onclick="toggleRateTable()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--t4);line-height:1">✕</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+    <thead><tr>
+      <th style="text-align:left;padding:3px 6px;color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:.7px">Year</th>
+      <th style="text-align:right;padding:3px 6px;color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:.7px">1 EUR = RON</th>
+    </tr></thead>
+    <tbody id="rate-table-body"></tbody>
+  </table>
+  <div style="margin-top:8px;font-size:10px;color:var(--t4);border-top:1px solid var(--border2);padding-top:6px">
+    Source: Banca Națională a României (BNR)<br>End-of-year reference rates
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══ Name Matcher Tab ═══════════════════════════════════════════════ -->
+<div id="pg-m" class="pg"><div class="page">
+
+  <!-- Phase 1: Upload -->
+  <div id="m-upload">
+    <div class="card">
+      <div class="sh"><span>Company Names File</span></div>
+      <div class="dz" id="mdz" onclick="document.getElementById('mfile').click()"
+        ondragover="mDzDrag(event,1)" ondragleave="mDzDrag(event,0)" ondrop="mDzDrop(event)">
+        <div class="dz-ico">📋</div>
+        <div class="dz-title" id="mdz-ttl">Click or drag Excel/CSV here</div>
+        <div class="dz-sub">One company name per row · column header: nume_firma</div>
+      </div>
+      <input type="file" id="mfile" accept=".xlsx,.xlsm,.csv,.txt" class="hid" onchange="mFileChosen(this)">
+      <div class="flex mt8">
+        <a href="/api/match/template" class="btn bg bsm">⬇ Download Template</a>
+        <span id="m-file-info" style="font-size:12px;color:var(--t3)"></span>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)">
+        <div style="font-size:11.5px;color:var(--t3);line-height:1.6">
+          <strong style="color:var(--text)">How it works:</strong> each name is normalized (legal-form suffixes like SRL/SA stripped, diacritics removed) and matched against the ONRC company registry using fuzzy text similarity.
+          <br>• <strong style="color:var(--ok)">≥ 97% similarity</strong> → auto-matched
+          <br>• <strong style="color:#B45309">70–97%</strong> → needs your manual approval
+          <br>• <strong style="color:var(--t4)">&lt; 70%</strong> → no confident match found
+        </div>
+      </div>
+      <button class="btn bp mt16" id="m-start-btn" onclick="mStart()" disabled>▶ Start Matching</button>
+    </div>
+  </div>
+
+  <!-- Phase 2: Progress -->
+  <div id="m-prog" class="hid">
+    <div class="card">
+      <div class="sh"><span>Matching Progress</span></div>
+      <div class="prg-nums">
+        <span class="prg-big" id="m-done">0</span>
+        <span class="prg-tot" id="m-tot">/ 0</span>
+        <span class="prg-pct" id="m-pct">0%</span>
+      </div>
+      <div class="prg-bar"><div class="prg-fill" id="m-bar" style="width:0%"></div></div>
+      <div style="font-size:12px;color:var(--pri);font-family:var(--mono);min-height:16px" id="m-msg"></div>
+    </div>
+  </div>
+
+  <!-- Phase 3: Overview + Review -->
+  <div id="m-review" class="hid">
+    <div class="card" style="background:linear-gradient(135deg,#0F2942,#1A3A5C);color:#fff;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Match Overview</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="m-summary-kpi"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="sh"><span>Bulk Actions</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn bs bsm" onclick="mBulkAction('approve_all_above', 90)">✓ Approve all pending ≥ 90%</button>
+        <button class="btn bd bsm" onclick="mBulkAction('reject_all_below', 75)">✖ Reject all pending &lt; 75%</button>
+        <div style="flex:1"></div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="m-filter-pending-only" checked onchange="mRenderTable()"> Show pending only
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sh"><span>Review Matches</span><span id="m-table-count" style="font-size:11px;color:var(--t3);font-weight:400"></span></div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px" id="m-table">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">Input Name</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">Matched Name</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">CUI</th>
+              <th style="text-align:center;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">Score</th>
+              <th style="text-align:center;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">Status</th>
+              <th style="text-align:center;padding:8px 6px;color:var(--t3);font-size:10px;text-transform:uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="m-tbody"></tbody>
+        </table>
+      </div>
+      <div id="m-empty-state" class="hid" style="text-align:center;padding:40px;color:var(--t3)">
+        <div style="font-size:32px;margin-bottom:8px">✅</div>
+        <div>No rows match the current filter</div>
+      </div>
+    </div>
+
+    <div class="card mt16" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn bp" onclick="mExport()">⬇ Export Excel</button>
+      <button class="btn bg" onclick="mSendToBulk()" id="m-to-bulk-btn">📊 Send Matched Companies to Bulk Analysis →</button>
+      <div style="flex:1"></div>
+      <button class="btn bd bsm" onclick="mReset()">↺ Start New Match</button>
+    </div>
+  </div>
+
+</div></div>
+<!-- ═══ End Name Matcher Tab ═══════════════════════════════════════════ -->
+
+<!-- Alternatives picker modal -->
+<div id="m-alt-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.4);width:480px;max-width:95vw;padding:22px">
+    <div style="font-weight:800;font-size:15px;margin-bottom:4px">Choose the correct match</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Input: <strong id="m-alt-input-name" style="color:var(--text)"></strong></div>
+    <div id="m-alt-list" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn bd bsm" style="flex:1" onclick="mCloseAltModal()">Cancel</button>
+      <button class="btn bd bsm" style="flex:1" onclick="mRejectFromModal()">✖ No correct match — Reject</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── existing JS continues (append CAEN JS below) ───────────────────
+
+// ═══ CAEN State ═════════════════════════════════════════════════════
+const CK = {
+  status: null,
+  acItems: [],
+  acIdx: -1,
+  acT: null,
+  descCache: {},
+  idxPoll: null,
+  lastResult: null,
+  lastYears: null,
+  lastAnchor: null,
+};
+const CAEN_YEARS_AVAIL = [2019,2020,2021,2022,2023,2024,2025];
+
+// ═══ CAEN Init ════════════════════════════════════════════════════════
+async function checkCaenSetup() {
+  try {
+    const r = await fetch('/api/caen/status');
+    CK.status = await r.json();
+    window._caenIndexed = !!CK.status.indexed;  // expose for offline toggle
+    renderCaenSetup();
+    // Pass available years but don't reset chip selection (false = preserve)
+    const avail = CK.status.years_available || CAEN_YEARS_AVAIL;
+    buildCaenYrSelects(avail, false);
+    renderCaenYrWarnings();
+    if (CK.status.index_state?.status === 'indexing') pollCaenIdx();
+  } catch(e) { console.warn('CAEN status error', e); }
+}
+
+function renderCaenSetup() {
+  const s = CK.status;
+  if (!s) return;
+  const banner  = document.getElementById('caen-setup-banner');
+  const title   = document.getElementById('csb-title');
+  const note    = document.getElementById('csb-note');
+  const idxBtn  = document.getElementById('caen-idx-btn');
+  const prog    = document.getElementById('caen-idx-prog');
+  const grid    = document.getElementById('csb-grid');
+  const st      = s.index_state?.status;
+  const detail  = s.files_detail || {};
+  const avail   = s.years_available || [];
+  const km      = s.known_missing  || {};
+
+  // ── File grid: years × sources ────────────────────────────────────
+  const SOURCES = [
+    {key:'uu',    label:'Micro/Small (UU)',    color:'#0096FF'},
+    {key:'bl_bs', label:'Medium/Large (BL/BS)',color:'#003791'},
+    {key:'ir',    label:'IFRS',               color:'#000082'},
+  ];
+  let gridHtml = `<div style="overflow-x:auto">
+    <table style="border-collapse:collapse;font-size:11px;width:100%">
+    <thead><tr>
+      <th style="padding:5px 8px;text-align:left;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.6px">Year</th>
+      ${SOURCES.map(s=>`<th style="padding:5px 10px;text-align:center;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.6px">${s.label}</th>`).join('')}
+      <th style="padding:5px 8px;text-align:center;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.6px">Coverage</th>
+    </tr></thead>
+    <tbody>`;
+  for (const year of CAEN_YEARS_AVAIL) {
+    const yrData = detail[year] || {};
+    const present = SOURCES.filter(s => yrData[s.key]?.present).length;
+    const total   = SOURCES.length;
+    const pct     = Math.round(present/total*100);
+    gridHtml += `<tr style="border-top:1px solid var(--border2)">
+      <td style="padding:5px 8px;font-family:var(--mono);font-weight:700;color:var(--text)">${year}</td>`;
+    for (const src of SOURCES) {
+      const fd = yrData[src.key] || {};
+      const isKM = km[`${src.key}_${year}`];
+      let cell;
+      if (fd.present) {
+        cell = `<span style="color:var(--ok);font-weight:700">✓</span>`;
+      } else if (isKM) {
+        cell = `<span style="color:var(--warn);font-weight:700" title="${isKM}">⚠ ANAF N/A</span>`;
+      } else {
+        cell = `<span style="color:var(--err)">✗</span>`;
+      }
+      gridHtml += `<td style="padding:5px 10px;text-align:center">${cell}</td>`;
+    }
+    const barColor = pct===100?'var(--ok)':pct>33?'var(--warn)':'var(--err)';
+    gridHtml += `<td style="padding:5px 8px;text-align:center">
+      <span style="font-weight:700;color:${barColor}">${present}/${total}</span>
+    </td></tr>`;
+  }
+  gridHtml += `</tbody></table></div>
+  <div style="font-size:11px;color:var(--t4);margin-top:8px">
+    ✓ Present &nbsp;·&nbsp; ⚠ Not published by ANAF &nbsp;·&nbsp; ✗ Missing (download and place in data/ folder)
+  </div>`;
+  grid.innerHTML = gridHtml;
+
+  // ── Status messages ───────────────────────────────────────────────
+  if (st === 'indexing') {
+    title.textContent = '⟳ Indexing CAEN Data…';
+    note.textContent  = s.index_state.message || '';
+    idxBtn.disabled   = true; idxBtn.textContent = '⟳ Indexing…';
+    prog.classList.remove('hid');
+    const pct = s.index_state.total > 0
+      ? Math.round(s.index_state.current/s.index_state.total*100) : 0;
+    document.getElementById('caen-idx-fill').style.width = pct + '%';
+    document.getElementById('caen-idx-lbl').textContent  = s.index_state.message || '';
+    banner.classList.remove('hid');
+  } else if (s.indexed) {
+    const st2 = s.stats || {};
+    title.textContent = `✅ CAEN Index Ready`;
+    note.innerHTML = `<span style="color:var(--ok);font-weight:600">
+      ${N(st2.companies||0)} companies · ${N(st2.caen_codes||0)} CAEN codes · ${st2.years||0} years · ${N(st2.rows||0)} rows
+      &nbsp;|&nbsp; <span style="color:var(--pri)">UU: ${N(st2.source_uu||0)}</span>
+      · <span style="color:var(--dark)">BL/BS: ${N(st2.source_bl||0)}</span>
+      · <span style="color:var(--navy)">IFRS: ${N(st2.source_ir||0)}</span>
+      ${st2.source_live?`· <span style="color:var(--warn)">Live: ${N(st2.source_live)}</span>`:''}
+    </span>`;
+    idxBtn.textContent = '↺ Re-index'; idxBtn.disabled = false;
+    prog.classList.add('hid');
+    banner.classList.remove('hid');
+  } else if (avail.length > 0) {
+    title.textContent = '📂 Files Detected — Not Indexed';
+    note.textContent  = `${avail.length} year(s) available. Build the index to enable CAEN analytics.`;
+    idxBtn.disabled   = false;
+    prog.classList.add('hid');
+    banner.classList.remove('hid');
+  } else {
+    title.textContent = '📁 CAEN Data Files Missing';
+    note.innerHTML    = `Download UU and BL/BS files from <a href="https://data.gov.ro/organization/mfinante" target="_blank">data.gov.ro/organization/mfinante</a>.`;
+    idxBtn.disabled   = true;
+    prog.classList.add('hid');
+    banner.classList.remove('hid');
+  }
+}
+
+// Show per-year chip warnings for known-missing files
+function renderCaenYrWarnings() {
+  const warn = document.getElementById('caen-yr-warnings');
+  if (!warn || !CK.status) return;
+  const km = CK.status.known_missing || {};
+  const selectedYrs = getYrs('k');
+  const msgs = [];
+  for (const [key, msg] of Object.entries(km)) {
+    const [src, year] = key.split('_');
+    if (selectedYrs.includes(+year)) {
+      const srcLabel = src==='ir'?'IFRS':src==='bl_bs'?'BL/BS':'UU';
+      msgs.push(`<span class="b l-warn" style="font-size:11px">⚠ ${srcLabel} ${year}: ${msg.split('.')[0]}</span>`);
+    }
+  }
+  warn.innerHTML = msgs.join(' ');
+}
+
+function buildCaenYrSelects(avail, resetChips) {
+  // avail: array of years to show. resetChips: false = keep existing user selection.
+  avail = avail || CAEN_YEARS_AVAIL;
+  if (!avail.length) return;
+  const f = document.getElementById('k-from');
+  const t = document.getElementById('k-to');
+  if (!f || !t) return;
+
+  // Always update select options (they don't hold user state)
+  f.innerHTML = avail.map(y=>`<option value="${y}">${y}</option>`).join('');
+  t.innerHTML = avail.map(y=>`<option value="${y}">${y}</option>`).join('');
+
+  const chipsDiv = document.getElementById('k-yrs');
+  const alreadyBuilt = chipsDiv && chipsDiv.children.length > 0;
+
+  if (!alreadyBuilt || resetChips) {
+    // First build or explicit reset — default all selected, set selects to full range
+    f.value = avail[0]; t.value = avail[avail.length-1];
+    chipsDiv.innerHTML = avail.map(y =>
+      `<button class="yr on" data-y="${y}" onclick="this.classList.toggle('on');renderCaenYrWarnings()">${y}</button>`
+    ).join('');
+  } else {
+    // Chips already exist — preserve selection, just update select values to match
+    const sel = getYrs('k');
+    if (sel.length) {
+      f.value = sel[0];
+      t.value = sel[sel.length-1];
+    }
+    // Add any new years that weren't there before
+    const existing = new Set([...chipsDiv.querySelectorAll('.yr')].map(b=>+b.dataset.y));
+    avail.forEach(y => {
+      if (!existing.has(y)) {
+        const btn = document.createElement('button');
+        btn.className = 'yr on';
+        btn.dataset.y = y;
+        btn.textContent = y;
+        btn.onclick = function(){ this.classList.toggle('on'); renderCaenYrWarnings(); };
+        chipsDiv.appendChild(btn);
+      }
+    });
+  }
+}
+
+async function startCaenIdx() {
+  const r = await fetch('/api/caen/start-index', {method:'POST'});
+  const d = await r.json();
+  if (d.started) { toast('CAEN indexing started','ok'); pollCaenIdx(); }
+  else toast('Already indexing','info');
+}
+
+function pollCaenIdx() {
+  clearInterval(CK.idxPoll);
+  CK.idxPoll = setInterval(async () => {
+    const r = await fetch('/api/caen/index-progress');
+    const st = await r.json();
+    if (CK.status) CK.status.index_state = st;
+    renderCaenSetup();
+    if (st.status === 'done') {
+      clearInterval(CK.idxPoll); await checkCaenSetup(); toast('CAEN indexing complete!','ok');
+    } else if (st.status === 'error') {
+      clearInterval(CK.idxPoll); toast('CAEN index error: '+st.error,'err');
+    }
+  }, 1800);
+}
+
+// ═══ Direct ANAF Scan ════════════════════════════════════════════════
+// ═══ CAEN Autocomplete ════════════════════════════════════════════════
+function onCaenInput(el) {
+  const v = el.value.trim();
+  clearTimeout(CK.acT);
+  hideCaenAc();
+  const hint = document.getElementById('caen-desc-hint');
+  if (!v) { hint.textContent = 'Enter a CAEN code to analyze the sector'; hint.className='caen-desc-hint'; return; }
+  if (CK.descCache[v]) {
+    hint.textContent = `${v} — ${CK.descCache[v]}`;
+    hint.className = 'caen-desc-hint loaded';
+  } else {
+    hint.textContent = 'Searching…'; hint.className = 'caen-desc-hint';
+  }
+  if (!(CK.status?.indexed)) { hint.textContent = 'Index CAEN data first to enable autocomplete'; return; }
+  CK.acT = setTimeout(() => fetchCaenAc(v), 280);
+}
+
+function onCaenKey(e) {
+  const drop = document.getElementById('caen-ac-drop');
+  const vis = !drop.classList.contains('hid');
+  if (e.key === 'Enter') { if(vis && CK.acIdx>=0 && CK.acItems[CK.acIdx]) { selectCaenAc(CK.acItems[CK.acIdx]); return; } doCaenAnalyze(); return; }
+  if (e.key === 'ArrowDown') { CK.acIdx=Math.min(CK.acIdx+1,CK.acItems.length-1); hlCaenAc(); e.preventDefault(); }
+  if (e.key === 'ArrowUp')   { CK.acIdx=Math.max(CK.acIdx-1,-1); hlCaenAc(); e.preventDefault(); }
+  if (e.key === 'Escape')    { hideCaenAc(); }
+}
+
+async function fetchCaenAc(q) {
+  try {
+    const r = await fetch(`/api/caen/search?q=${encodeURIComponent(q)}&limit=15`);
+    const items = await r.json();
+    CK.acItems = items; CK.acIdx = -1;
+    const drop = document.getElementById('caen-ac-drop');
+    if (!items.length) { drop.innerHTML='<div class="ac-nil">No CAEN codes found</div>'; drop.classList.remove('hid'); return; }
+    drop.innerHTML = items.map((it,i) =>
+      `<div class="cac-it" onclick="selectCaenAc(CK.acItems[${i}])">
+        <span class="cac-code">${it.caen}</span>
+        <span class="cac-name">${esc(it.description||'—')}</span>
+      </div>`
+    ).join('');
+    drop.classList.remove('hid');
+  } catch(e) { hideCaenAc(); }
+}
+
+function hlCaenAc() { document.querySelectorAll('.cac-it').forEach((el,i)=>el.classList.toggle('hi',i===CK.acIdx)); }
+function hideCaenAc() { document.getElementById('caen-ac-drop').classList.add('hid'); CK.acItems=[]; CK.acIdx=-1; }
+function selectCaenAc(item) {
+  document.getElementById('caen-in').value = item.caen;
+  if (item.description) {
+    CK.descCache[String(item.caen)] = item.description;
+    document.getElementById('caen-desc-hint').textContent = `${item.caen} — ${item.description}`;
+    document.getElementById('caen-desc-hint').className = 'caen-desc-hint loaded';
+  }
+  hideCaenAc();
+}
+
+// ═══ Entity type filter ════════════════════════════════════════════
+function getEntityTypes() {
+  return [...document.querySelectorAll('.entity-toggle input:checked')]
+    .map(el => el.closest('.entity-toggle').dataset.type);
+}
+function onEntityToggle() {
+  // No auto-run — user clicks Analyze to apply
+}
+function setAllEntityTypes(checked) {
+  document.querySelectorAll('.entity-toggle input').forEach(el => el.checked = checked);
+}
+
+// ═══ CAEN Analyze ═════════════════════════════════════════════════════
+async function doCaenAnalyze() {
+  const raw = document.getElementById('caen-in').value.trim();
+  if (!raw) { toast('Enter a CAEN code', 'err'); return; }
+  const caen = parseInt(raw);
+  if (!caen || caen <= 0) { toast('Invalid CAEN code', 'err'); return; }
+  const yrs = getYrs('k');
+  if (!yrs.length) { toast('Select at least one year', 'err'); return; }
+  const peerRaw = document.getElementById('peer-cui-in').value.trim();
+  const peerCui = peerRaw ? parseInt(peerRaw) : null;
+
+  const btn = document.getElementById('caen-btn');
+  btn.disabled = true; btn.textContent = '⟳ Analyzing…';
+
+  document.getElementById('caen-result').innerHTML = `
+    <div class="card" style="text-align:center;padding:52px">
+      <div class="spin" style="margin:0 auto 14px"></div>
+      <div style="color:var(--t3)">Analyzing CAEN ${caen} across ${yrs.join(', ')}…</div>
+    </div>`;
+
+  try {
+    const r = await fetch('/api/caen/analyze', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({caen, years:yrs, anchor_year: Math.max(...yrs),
+        peer_cui: peerCui, entity_types: getEntityTypes()})
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Analysis failed'); }
+    const data = await r.json();
+    if (data.description) {
+      CK.descCache[String(caen)] = data.description;
+      document.getElementById('caen-desc-hint').textContent = `${caen} — ${data.description}`;
+      document.getElementById('caen-desc-hint').className = 'caen-desc-hint loaded';
+    }
+    renderCaenResult(data);
+    CK.lastResult  = data;
+    CK.lastYears   = yrs;
+    CK.lastAnchor  = Math.max(...yrs);
+  } catch(e) {
+    document.getElementById('caen-result').innerHTML = `<div class="card"><div class="empty">
+      <div class="ei">⚠️</div><div class="et">Error</div><div class="es">${esc(e.message)}</div>
+    </div></div>`;
+    toast(e.message, 'err');
+  } finally { btn.disabled=false; btn.textContent='Analyze Sector'; }
+}
+
+// ═══ CAEN Result Renderer ══════════════════════════════════════════════
+function renderCaenResult(d) {
+  // Destroy previous CAEN charts
+  ['ck-trend','ck-prof','ck-top10','ck-sz'].forEach(id=>{
+    if(C[id]){try{C[id].destroy();}catch(e){}delete C[id];}
+  });
+
+  if (d.empty) {
+    document.getElementById('caen-result').innerHTML = `<div class="card"><div class="empty">
+      <div class="ei">🔍</div><div class="et">No data found</div>
+      <div class="es">${esc(d.reason||'')}</div></div></div>`;
+    return;
+  }
+
+  const cur = curSfx();
+  const rv = d.revenue_stats||{}, nt = d.net_result_stats||{}, emp = d.employee_stats||{};
+  const pc = d.portfolio_cagr||{}, prof = d.profitability||{};
+  const anchor = d.anchor_year;
+  let h = '';
+
+  // Update ONRC note
+  const onrcNote = document.getElementById('entity-onrc-note');
+  if (onrcNote) {
+    onrcNote.textContent = d.onrc_available
+      ? '(entity types from ONRC)'
+      : '(ONRC not indexed — all companies shown as "other"; index ONRC to enable filtering)';
+  }
+
+  // ── Sector header ────────────────────────────────────────────────
+  const ec = d.entity_counts || {};
+  const etBadges = [];
+  if (ec.commercial) etBadges.push(`<span class="etype-badge etype-commercial">🏢 ${N(ec.commercial)} commercial</span>`);
+  if (ec.sucursala)  etBadges.push(`<span class="etype-badge etype-sucursala">🌐 ${N(ec.sucursala)} sucursale</span>`);
+  if (ec.nonprofit)  etBadges.push(`<span class="etype-badge etype-nonprofit">🤝 ${N(ec.nonprofit)} nonprofits</span>`);
+  if (ec.public)     etBadges.push(`<span class="etype-badge etype-public">🏛 ${N(ec.public)} public</span>`);
+  if (ec.other)      etBadges.push(`<span class="etype-badge etype-other">❓ ${N(ec.other)} other</span>`);
+  const src = d.source_breakdown || {};
+  const srcParts = [];
+  if (src.uu)    srcParts.push(`<span class="b l-info" style="font-size:10px">UU: ${N(src.uu)}</span>`);
+  if (src.bl_bs) srcParts.push(`<span class="b l-info" style="font-size:10px;background:#EFF6FF;color:#003791">BL/BS: ${N(src.bl_bs)}</span>`);
+  if (src.ir)    srcParts.push(`<span class="b l-info" style="font-size:10px;background:#EEE8FF;color:#4B0082">IFRS: ${N(src.ir)}</span>`);
+  h += `<div class="co-hdr" style="margin-top:20px">
+    <div class="co-name" style="font-size:18px">CAEN ${d.caen}${d.description?' — '+esc(d.description):''}</div>
+    <div class="co-meta">
+      <span class="m">📅 Anchor year: <strong>${anchor}</strong></span>
+      <span class="m">📊 ${N(d.total_companies)} companies analysed</span>
+      <span class="m">📆 Years: ${(d.years||[]).join(', ')}</span>
+    </div>
+    <div class="co-flags">
+      <span class="b b-ok">✓ ${N(prof.profitable)} profitable</span>
+      <span class="b b-err">✗ ${N(prof.loss_making)} loss-making</span>
+      ${prof.breakeven?`<span class="b b-dim">~ ${N(prof.breakeven)} breakeven</span>`:''}
+    </div>
+    ${srcParts.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;position:relative">${srcParts.join('')}</div>`:''}
+    ${etBadges.length && d.onrc_available?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;position:relative">${etBadges.join('')}</div>`:''}
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <button onclick="exportCaen('RON')" class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:12px;padding:6px 13px">
+          ⬇ Light Export (RON)
+        </button>
+        <button onclick="exportCaen('EUR')" class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:12px;padding:6px 13px">
+          ⬇ Light Export (EUR)
+        </button>
+        <span style="font-size:10px;color:rgba(255,255,255,.55)">Summary · Top 10 with names · Trend</span>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <button onclick="exportCaenFull('RON')" class="btn" style="background:rgba(25,170,254,.22);color:var(--lgt);border:1px solid rgba(119,205,255,.45);font-size:12px;padding:6px 13px">
+          ⬇ Full Export (RON)
+        </button>
+        <button onclick="exportCaenFull('EUR')" class="btn" style="background:rgba(25,170,254,.22);color:var(--lgt);border:1px solid rgba(119,205,255,.45);font-size:12px;padding:6px 13px">
+          ⬇ Full Export (EUR)
+        </button>
+        <span style="font-size:10px;color:rgba(255,255,255,.45)">All ${N(d.total_companies||0)} companies with names &amp; financials · may be large file</span>
+      </div>
+    </div>
+  </div>`;
+
+  // ── KPIs ─────────────────────────────────────────────────────────
+  h += `<div class="sh"><span>Sector Overview (${cur}, ${anchor})</span></div>
+  <div class="kpi-grid">
+    ${kpiMoney('Avg Revenue', cvt(rv.avg,anchor), anchor, rv.avg, 'pri')}
+    ${kpiMoney('Median Revenue', cvt(rv.median,anchor), anchor, rv.median)}
+    ${kpiMoney('Total Revenue', cvt(rv.total,anchor), anchor, rv.total)}
+    ${kpiMoney('Avg Net Result', cvt(nt.avg,anchor), anchor, nt.avg, nt.avg>=0?'ok':'err')}
+    ${kpi('Profitable', fmtPct(prof.profitable_pct), `${N(prof.profitable)} of ${N(d.total_companies)} companies`, 'ok')}
+    ${kpi('Total Employees', N(emp.total), 'avg headcount across sector')}
+    ${kpiMoney('Max Revenue', cvt(rv.max,anchor), anchor, rv.max)}
+    ${kpi('CAEN Codes', d.caen, 'sector code')}
+  </div>`;
+
+  // ── CAGR ─────────────────────────────────────────────────────────
+  if (pc.companies > 0) {
+    h += `<div class="sh"><span>Sector CAGR (${pc.start_year}→${pc.end_year})</span></div>
+    <div class="cagr-card">
+      <div class="cagr-item">
+        <div class="cagr-lbl">Revenue CAGR (median)</div>
+        <div class="cagr-v ${pc.revenue_median==null?'neu':pc.revenue_median>=0?'pos':'neg'}">${pc.revenue_median!=null?fmtPct(pc.revenue_median):'N/A'}</div>
+        <div class="cagr-period">Avg: ${pc.revenue_avg!=null?fmtPct(pc.revenue_avg):'—'} · based on ${N(pc.companies)} companies</div>
+      </div>
+      <div class="cagr-item">
+        <div class="cagr-lbl">Net Result CAGR (median)</div>
+        <div class="cagr-v ${pc.net_median==null?'neu':pc.net_median>=0?'pos':'neg'}">${pc.net_median!=null?fmtPct(pc.net_median):'N/A'}</div>
+        <div class="cagr-period">Sector ${(d.years||[]).join(' · ')}</div>
+      </div>
+    </div>`;
+  }
+
+  // ── Peer benchmarking ─────────────────────────────────────────────
+  if (d.peer) {
+    const p = d.peer;
+    const rpct = p.pct_revenue;
+    const rpcls = rpct >= 75 ? 'top' : rpct >= 40 ? 'mid' : 'bot';
+    h += `<div class="sh"><span>Peer Benchmarking — CUI ${p.cui}</span></div>
+    <div class="peer-card">
+      <div style="font-family:var(--head);font-size:14px;font-weight:700;color:var(--t2)">CUI ${p.cui} vs ${N(p.total_companies)} companies in CAEN ${d.caen}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:3px">Using ${p.year} data${p.cagr_revenue!=null?' · Company CAGR: '+fmtPct(p.cagr_revenue):''}</div>
+      <div class="peer-rank-grid">
+        <div class="rank-item">
+          <div class="rank-num">#${N(p.rank_revenue)}</div>
+          <div class="rank-of">of ${N(p.total_companies)} by Revenue</div>
+          <div class="rank-pct ${rpcls}">Top ${(100-rpct).toFixed(0)}%</div>
+        </div>
+        <div class="rank-item">
+          <div class="rank-num">#${N(p.rank_net)}</div>
+          <div class="rank-of">of ${N(p.total_companies)} by Net Result</div>
+          <div class="rank-pct ${p.pct_net>=75?'top':p.pct_net>=40?'mid':'bot'}">Top ${(100-p.pct_net).toFixed(0)}%</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px">
+        ${di('Company Revenue', fmtN(Math.round(cvt(p.revenue,p.year)))+' '+cur, true)}
+        ${di('Company Net Result', fmtN(Math.round(cvt(p.net_result,p.year)))+' '+cur, true)}
+        ${di('vs Sector Median', p.revenue_vs_median!=null?(p.revenue_vs_median>=0?'+':'')+fmtPct(p.revenue_vs_median):'—', true)}
+      </div>
+    </div>`;
+  }
+
+  // ── Charts row 1: profitability + revenue trend ───────────────────
+  h += `<div class="sh"><span>Performance Analysis</span></div>
+  <div class="ch-row">
+    <div class="ch-card"><div class="ch-title">Profitability Split</div><div class="ch-box"><canvas id="ck-prof"></canvas></div></div>
+    <div class="ch-card"><div class="ch-title">Revenue Trend (${cur})</div><div class="ch-box"><canvas id="ck-trend"></canvas></div></div>
+  </div>`;
+
+  // ── Size buckets ──────────────────────────────────────────────────
+  const sz = d.size_buckets || {};
+  const szTotal = Object.values(sz).reduce((a,b)=>a+b, 0) || 1;
+  const szColors = {'Micro':'#77CDFF','Small':'#19AAFE','Medium':'#0096FF','Large':'#003791'};
+  h += `<div class="sh"><span>Company Size Distribution (by Revenue)</span></div>
+  <div class="card">
+    <div style="font-size:11px;color:var(--t4);margin-bottom:12px">EU SME definition thresholds: Micro &lt;900K RON · Small &lt;8.8M · Medium &lt;88M · Large ≥88M RON</div>
+    <div class="sz-bars">`;
+  ['Micro','Small','Medium','Large'].forEach(nm=>{
+    const cnt = sz[nm]||0;
+    const pct = Math.round(cnt/szTotal*100);
+    const barW = Math.max(pct, cnt>0?2:0);
+    h += `<div class="sz-row">
+      <span class="sz-lbl">${nm}</span>
+      <div class="sz-bar-wrap">
+        <div class="sz-bar-fill" style="width:${barW}%;background:${szColors[nm]}">${pct>8?pct+'%':''}</div>
+      </div>
+      <span class="sz-cnt">${N(cnt)}</span>
+      <span class="sz-pct">${pct}%</span>
+    </div>`;
+  });
+  h += `</div></div>`;
+
+  // ── Top 10 chart ──────────────────────────────────────────────────
+  h += `<div class="sh"><span>Top 10 Companies by Revenue (${cur}, ${anchor})</span></div>
+  <div class="ch-card"><div class="ch-title">Highest Net Turnover</div>
+  <div class="ch-box-lg"><canvas id="ck-top10"></canvas></div></div>`;
+
+  // ── Revenue percentiles ────────────────────────────────────────────
+  const pct = d.percentiles || {};
+  if (Object.keys(pct).length) {
+    h += `<div class="sh"><span>Revenue Distribution Percentiles (${cur})</span></div>
+    <div class="card"><div class="dg">`;
+    [[10,'p10'],[25,'p25'],[50,'Median'],[75,'p75'],[90,'p90'],[95,'p95'],[99,'p99']].forEach(([p,lbl])=>{
+      const v = pct[String(p)];
+      if (v != null) h += di(lbl, fmtN(Math.round(cvt(v,anchor)))+' '+cur, true);
+    });
+    h += `</div></div>`;
+  }
+
+  // ── County map ────────────────────────────────────────────────────
+  const countyData = d.county_distribution || [];
+  if (countyData.length) {
+    h += `<div class="sh"><span>Regional Distribution</span></div>
+    <div class="card" style="padding:16px">
+      ${renderRoMap(countyData)}
+    </div>`;
+  }
+
+  // ── Top 10 table ──────────────────────────────────────────────────
+  const top10 = d.top10_revenue || [];
+  if (top10.length) {
+    h += `<div class="sh"><span>Top 10 Companies — Detail</span></div>
+    <div class="card"><div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>#</th><th>CUI</th><th>Company Name</th><th>Revenue (${cur})</th><th>Net Result (${cur})</th><th>Employees</th></tr></thead>
+      <tbody>`;
+    top10.forEach((r,i) => {
+      const rv2 = Math.round(cvt(r.rev,anchor));
+      const nr2 = Math.round(cvt(r.net_result,anchor));
+      const name = r.name || `CUI ${r.cui}`;
+      h += `<tr>
+        <td style="color:var(--t4);font-family:var(--mono)">${i+1}</td>
+        <td>
+          <button onclick="goCheckCui(${r.cui})" style="background:none;border:none;color:var(--pri);font-family:var(--mono);font-size:12px;cursor:pointer;font-weight:700;padding:0" title="Open in Company Check">
+            ${r.cui} ↗
+          </button>
+        </td>
+        <td style="font-size:12.5px;font-weight:600;color:var(--text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(name)}">
+          ${esc(name)}
+          ${r.entity_type && r.entity_type !== 'commercial' ? `<span class="etype-badge etype-${r.entity_type}">${r.entity_type}</span>` : ''}
+        </td>
+        <td style="font-family:var(--mono);font-weight:600;color:var(--pri)">${fmtN(rv2)}</td>
+        <td class="${r.net_result>=0?'pos':'neg'}" style="font-family:var(--mono)">${fmtN(nr2)}</td>
+        <td style="font-family:var(--mono)">${N(r.employees)}</td>
+      </tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+  }
+
+  document.getElementById('caen-result').innerHTML = h;
+
+  // ── Render charts ─────────────────────────────────────────────────
+  setTimeout(()=>{
+
+    // Profitability donut
+    const total = prof.profitable + prof.loss_making + (prof.breakeven||0);
+    mkChart('ck-prof','doughnut',{
+      labels:['Profitable','Loss-making','Breakeven'],
+      datasets:[{data:[prof.profitable,prof.loss_making,prof.breakeven||0],
+        backgroundColor:['#059669','#EF4444','#94A3B8'],borderColor:'#fff',borderWidth:3,hoverOffset:6}]
+    },{plugins:{legend:{display:true,position:'bottom',labels:{padding:12,usePointStyle:true}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${N(c.parsed)} (${total?Math.round(c.parsed/total*100):0}%)`}}}});
+
+    // Revenue trend
+    const tr = (d.trend||[]).filter(e=>e.avg_rev!=null);
+    if (tr.length) {
+      mkChart('ck-trend','bar',{
+        labels: tr.map(e=>e.year),
+        datasets:[
+          {label:`Avg Rev (${cur})`,type:'bar',
+           data:tr.map(e=>Math.round(cvt(e.avg_rev||0,e.year))),
+           backgroundColor:'#0096FFCC',borderRadius:3,order:2},
+          {label:`Median Rev (${cur})`,type:'line',
+           data:tr.map(e=>e.median_rev!=null?Math.round(cvt(e.median_rev,e.year)):null),
+           borderColor:'#003791',backgroundColor:'transparent',
+           pointRadius:5,pointBackgroundColor:'#003791',tension:.3,order:1,borderWidth:2.5}
+        ]
+      },{
+        plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,padding:12,font:{size:11}}}},
+        scales:{x:{grid:GRD,ticks:TCK,border:{display:false}},
+                y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}}
+      });
+    }
+
+    // Top 10 horizontal bar — use names if available
+    if (top10.length) {
+      mkChart('ck-top10','bar',{
+        labels:top10.map(r=>trunc(r.name || `CUI ${r.cui}`, 30)),
+        datasets:[{label:`Revenue (${cur})`,
+          data:top10.map(r=>Math.round(cvt(r.rev,anchor))),
+          backgroundColor:PCOLS.slice(0,top10.length),borderRadius:3}]
+      },{indexAxis:'y',
+        scales:{x:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}},
+                y:{grid:{...GRD,drawOnChartArea:false},ticks:{...TCK,font:{size:10}},border:{display:false}}},
+        plugins:{tooltip:{callbacks:{label:c=>fmtN(c.parsed.x)+' '+cur}}}});
+    }
+
+    // Init MapLibre map AFTER DOM is painted
+    if (countyData.length) {
+      initRoMap(countyData);
+    }
+
+  }, 150);
+}
+
+// ═══ Romania MapLibre Choropleth ═══════════════════════════════════════
+// Map from county abbreviation → exact GeoJSON properties.name value
+const COUNTY_GEO = {
+  'AB':'Alba','AR':'Arad','AG':'Argeș','BC':'Bacău','BH':'Bihor',
+  'BN':'Bistrița-Năsăud','BT':'Botoșani','BV':'Brașov','BR':'Brăila',
+  'B':'Bucharest','BZ':'Buzău','CS':'Caraș-Severin','CL':'Călărași',
+  'CJ':'Cluj','CT':'Constanța','CV':'Covasna','DB':'Dâmbovița',
+  'DJ':'Dolj','GL':'Galați','GR':'Giurgiu','GJ':'Gorj','HR':'Harghita',
+  'HD':'Hunedoara','IL':'Ialomița','IS':'Iași','IF':'Ilfov',
+  'MM':'Maramureș','MH':'Mehedinți','MS':'Mureș','NT':'Neamț',
+  'OT':'Olt','PH':'Prahova','SM':'Satu Mare','SJ':'Sălaj',
+  'SB':'Sibiu','SV':'Suceava','TR':'Teleorman','TM':'Timiș',
+  'TL':'Tulcea','VS':'Vaslui','VL':'Vâlcea','VN':'Vrancea'
+};
+
+// Normalize string for matching: remove diacritics, lowercase, trim
+function normStr(s) {
+  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
+// Build reverse map: normalized GeoJSON name → count
+function buildCountyLookup(countyData) {
+  const abbrCount = {};
+  (countyData||[]).forEach(d => { abbrCount[d.county] = d.count; });
+  const lookup = {};  // normalized name → {count, abbr}
+  Object.entries(COUNTY_GEO).forEach(([abbr, name]) => {
+    const count = abbrCount[abbr] || 0;
+    lookup[normStr(name)] = {count, abbr, name};
+  });
+  return lookup;
+}
+
+// Color scale: 7 stops, light→dark blue
+const MAP_COLORS = ['#EBF3FF','#C8EBFF','#77CDFF','#19AAFE','#0096FF','#0070BF','#003791'];
+
+function countToColor(count, maxCount) {
+  if (!count || !maxCount) return MAP_COLORS[0];
+  const idx = Math.min(Math.floor(count / maxCount * (MAP_COLORS.length - 1)), MAP_COLORS.length - 1);
+  return MAP_COLORS[Math.max(idx, count > 0 ? 1 : 0)];
+}
+
+let _mapInstance = null;  // track for cleanup
+
+function renderRoMap(countyData) {
+  const mapId = 'ro-map-gl';
+  const lookup = buildCountyLookup(countyData);
+  const maxCount = Math.max(...(countyData||[]).map(d => d.count), 1);
+
+  // Destroy previous map instance
+  if (_mapInstance) {
+    try { _mapInstance.remove(); } catch(e) {}
+    _mapInstance = null;
+  }
+
+  return `
+    <div style="position:relative">
+      <div id="${mapId}" class="ro-map-container"></div>
+      <div id="ro-map-tip" class="ro-map-tooltip"></div>
+    </div>
+    <div class="ro-map-legend">
+      <span>Fewer</span>
+      <div class="ro-map-legend-bar">
+        ${MAP_COLORS.map(c=>`<div style="background:${c}"></div>`).join('')}
+      </div>
+      <span>More companies</span>
+    </div>`;
+}
+
+// Called after the HTML is in the DOM
+function initRoMap(countyData) {
+  const mapId = 'ro-map-gl';
+  const el = document.getElementById(mapId);
+  if (!el) return;
+  if (_mapInstance) { try { _mapInstance.remove(); } catch(e) {} _mapInstance = null; }
+
+  const lookup = buildCountyLookup(countyData);
+  const maxCount = Math.max(...(countyData||[]).map(d => d.count), 1);
+
+  // Build county→color expression for MapLibre paint
+  // We'll add count as a property to each GeoJSON feature
+  const map = new maplibregl.Map({
+    container: mapId,
+    style: 'https://api.maptiler.com/maps/019c27bf-3186-7316-a5ae-7bc323489a32/style.json?key=Eetc6MEtWGtE2ijHMxm9',
+    center: [25.0, 45.8],
+    zoom: 5.8,
+    minZoom: 4,
+    maxZoom: 10,
+    pitchWithRotate: false,
+    dragRotate: false,
+    attributionControl: false,
+  });
+  _mapInstance = map;
+
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-right');
+
+  map.on('load', async () => {
+    // Fetch the GeoJSON
+    let geojson;
+    try {
+      const r = await fetch('/romania.geojson');
+      geojson = await r.json();
+    } catch(e) {
+      console.error('Could not load romania.geojson', e);
+      return;
+    }
+
+    // Inject count into each feature
+    geojson.features = geojson.features.map(f => {
+      const gname = (f.properties && (f.properties.name || f.properties.NAME || f.properties.NAME_1)) || '';
+      const info = lookup[normStr(gname)] || {count:0, name:gname};
+      f.properties._count = info.count;
+      f.properties._display_name = info.name || gname;
+      f.properties._pct = maxCount > 0 ? Math.round(info.count/maxCount*100) : 0;
+      return f;
+    });
+
+    map.addSource('counties', { type:'geojson', data: geojson });
+
+    // Fill layer — color by count
+    // Build step expression: [step, count, color0, break1, color1, ...]
+    const breaks = [0.14, 0.28, 0.42, 0.57, 0.71, 0.85].map(f => Math.round(f*maxCount));
+    map.addLayer({
+      id: 'counties-fill',
+      type: 'fill',
+      source: 'counties',
+      paint: {
+        'fill-color': [
+          'step', ['get','_count'],
+          MAP_COLORS[0],
+          breaks[0]+1, MAP_COLORS[1],
+          breaks[1]+1, MAP_COLORS[2],
+          breaks[2]+1, MAP_COLORS[3],
+          breaks[3]+1, MAP_COLORS[4],
+          breaks[4]+1, MAP_COLORS[5],
+          breaks[5]+1, MAP_COLORS[6],
+        ],
+        'fill-opacity': 0.82,
+      }
+    });
+
+    // Outline layer
+    map.addLayer({
+      id: 'counties-line',
+      type: 'line',
+      source: 'counties',
+      paint: {
+        'line-color': '#fff',
+        'line-width': 1.2,
+        'line-opacity': 0.9,
+      }
+    });
+
+    // Hover highlight
+    map.addLayer({
+      id: 'counties-hover',
+      type: 'fill',
+      source: 'counties',
+      paint: {
+        'fill-color': '#000082',
+        'fill-opacity': ['case', ['boolean',['feature-state','hover'],false], 0.22, 0],
+      }
+    });
+
+    // Tooltip
+    const tip = document.getElementById('ro-map-tip');
+    let hoverId = null;
+
+    map.on('mousemove','counties-fill', e => {
+      if (!e.features.length) return;
+      map.getCanvas().style.cursor = 'pointer';
+      const f = e.features[0];
+      const id = f.id ?? f.properties._display_name;
+
+      if (hoverId !== null) {
+        map.setFeatureState({source:'counties', id:hoverId}, {hover:false});
+      }
+      hoverId = id;
+      map.setFeatureState({source:'counties', id}, {hover:true});
+
+      const nm = f.properties._display_name;
+      const cnt = f.properties._count || 0;
+      const pct = f.properties._pct || 0;
+      if (tip) {
+        tip.style.display = 'block';
+        tip.style.left = (e.point.x + 12) + 'px';
+        tip.style.top  = (e.point.y - 10) + 'px';
+        tip.innerHTML = `<strong>${esc(nm)}</strong><br>${N(cnt)} companies (${pct}% of max)`;
+      }
+    });
+
+    map.on('mouseleave','counties-fill', () => {
+      map.getCanvas().style.cursor = '';
+      if (hoverId !== null) {
+        map.setFeatureState({source:'counties', id:hoverId}, {hover:false});
+      }
+      hoverId = null;
+      if (tip) tip.style.display = 'none';
+    });
+  });
+
+  map.on('error', e => {
+    console.warn('MapLibre error, trying fallback style:', e);
+    // Fallback: use MapTiler dataviz (clean white)
+    try {
+      map.setStyle('https://api.maptiler.com/maps/dataviz/style.json?key=Eetc6MEtWGtE2ijHMxm9');
+    } catch(e2) {}
+  });
+}
+
+// ═══ CUI clickthrough from CAEN tab ═════════════════════════════════════
+function goCheckCui(cui) {
+  document.getElementById('cui-in').value = cui;
+  setTab('c');
+  doCheck();
+}
+
+async function exportCaen(cur) {
+  if (!CK.lastResult) { toast('Run an analysis first','err'); return; }
+  const d = CK.lastResult;
+  const body = {caen:d.caen, years:CK.lastYears||getYrs('k'), anchor_year:d.anchor_year, peer_cui:null};
+  try {
+    const r = await fetch(`/api/caen/export?eur=${cur==='EUR'?1:0}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Export failed'); }
+    const blob=await r.blob(); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`caen_${d.caen}_summary_${cur}_${d.anchor_year}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+    toast(`Summary export (${cur}) downloaded`,'ok');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function exportCaenFull(cur) {
+  if (!CK.lastResult) { toast('Run an analysis first','err'); return; }
+  const d = CK.lastResult;
+  const n = d.total_companies || 0;
+  if (n > 5000 && !confirm(
+    `Full export: ${N(n)} companies — this may produce a large Excel file and take a moment.\n\nContinue?`
+  )) return;
+  const body = {caen:d.caen, years:CK.lastYears||getYrs('k'), anchor_year:d.anchor_year, peer_cui:null};
+  toast(`Preparing full export (${N(n)} companies)…`,'info');
+  try {
+    const r = await fetch(`/api/caen/export-full?eur=${cur==='EUR'?1:0}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Export failed'); }
+    const blob=await r.blob(); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`caen_${d.caen}_full_${n}co_${cur}_${d.anchor_year}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+    toast(`Full export (${N(n)} companies, ${cur}) downloaded`,'ok');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// Close CAEN autocomplete on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.caen-ac-wrap')) hideCaenAc();
+});
+</script>
+
+<script>
+// ═══ Constants ═════════════════════════════════════════════════════
+// BNR official end-of-year reference rates RON/EUR (source: BNR)
+const EUR_RATES_HIST = {
+  2019:4.7452, 2020:4.8371, 2021:4.9204,
+  2022:4.9315, 2023:4.9465, 2024:4.9746, 2025:5.0415
+};
+const YALL = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+
+// Chart defaults
+Chart.defaults.font.family = "'DM Sans',sans-serif";
+Chart.defaults.font.size   = 12;
+Chart.defaults.color       = '#0070BF';
+const GRD = {color:'rgba(0,55,145,.07)',drawBorder:false};
+const TCK = {color:'#0070BF'};
+const PCOLS = ['#0096FF','#003791','#19AAFE','#0070BF','#77CDFF','#1B1BFF','#000082','#00B4FF'];
+
+// ═══ State ═════════════════════════════════════════════════════════
+const S = {
+  onrc: null, jobId: null, pollT: null, acT: null, acIdx: -1, acItems: [],
+  bannerOpen: false, currency: 'RON',
+  checkResult: null,   // cache for EUR re-render
+  analyticsData: null, // cache for EUR re-render
+  analyticsAnchor: null,
+};
+const C = {}; // chart instances
+
+// ═══ Init ══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const d = new Date();
+  document.getElementById('hdr-date').textContent =
+    d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  buildYrSelects('c'); buildYrSelects('b');
+  buildYrChips('c',[2023,2024,2025]); buildYrChips('b',[2023,2024,2025]);
+  // Build CAEN year selects immediately with known defaults — don't wait for API
+  buildCaenYrSelects(CAEN_YEARS_AVAIL, false);
+  loadSetup();
+  fetch('/api/caen/status').then(r=>r.json()).then(d=>{ window._caenIndexed=!!d.indexed; }).catch(()=>{});
+  document.addEventListener('click', e => { if(!e.target.closest('.ac-wrap')) hideAc(); });
+});
+
+// ═══ Setup Modal ════════════════════════════════════════════════════
+async function loadSetup() {
+  try {
+    const r = await fetch('/api/setup/status');
+    const d = await r.json();
+    S.onrc = d;
+    renderChip();
+    renderBanner();
+    if (d.first_run || d.csv_stale) showSetup(d);
+    if (d.index_state?.status === 'indexing') pollIdx();
+  } catch(e) { console.warn('Setup error', e); }
+}
+
+function showSetup(d) {
+  // Age bar
+  const bar = document.getElementById('sp-age-bar');
+  const ico = document.getElementById('sp-age-ico');
+  const h   = document.getElementById('sp-age-h');
+  const p   = document.getElementById('sp-age-p');
+  if (d.csv_date) {
+    const months = d.csv_age_days ? Math.floor(d.csv_age_days / 30) : 0;
+    if (d.csv_stale) {
+      bar.className = 'setup-age-bar age-warn';
+      ico.textContent = '⚠️';
+      h.textContent = `Data is ${months} month${months !== 1 ? 's' : ''} old`;
+      p.textContent = `Bundled: ${fmtDate(d.csv_date)} — consider downloading a fresh copy from data.gov.ro`;
+    } else {
+      bar.className = 'setup-age-bar age-ok';
+      ico.textContent = '✅';
+      h.textContent = 'Data is up to date';
+      p.textContent = `Bundled: ${fmtDate(d.csv_date)}`;
+    }
+  } else {
+    h.textContent = 'Data bundle included'; p.textContent = 'No version information available';
+  }
+  // File list
+  const files = d.files || {};
+  const defs = [
+    {k:'firme',      name:'OD_FIRME.csv',                 path:'data/', dsc:'Company registry'},
+    {k:'stare',      name:'OD_STARE_FIRMA.csv',            path:'data/', dsc:'Company status codes'},
+    {k:'reps',       name:'OD_REPREZENTANTI_LEGALI.csv',   path:'data/', dsc:'Legal representatives'},
+    {k:'nomenclator',name:'nomenclator.csv',               path:'root',  dsc:'Status descriptions'},
+  ];
+  document.getElementById('sp-flist').innerHTML = defs.map(f => {
+    const ok = files[f.k];
+    return `<div class="frow2">
+      <div class="fstat2 ${ok?'fok2':'fmiss2'}">${ok?'✓':'✗'}</div>
+      <span class="fname2">${f.name}</span>
+      <span class="fpath2">${f.path}</span>
+      <span style="font-size:11px;color:var(--t4)">${f.dsc}</span>
+    </div>`;
+  }).join('');
+  // Page 2 status
+  const sp2s = document.getElementById('sp2-status');
+  if (d.indexed) {
+    sp2s.innerHTML = `<span style="color:var(--ok);font-weight:700">✓ Index already built — ${N(d.stats?.companies||0)} companies ready</span>`;
+    document.getElementById('sp-idx-btn').textContent = '✓ Already indexed';
+    document.getElementById('sp-idx-btn').disabled = true;
+  } else if (!files.all_csv) {
+    sp2s.textContent = 'Place the CSV files in the data/ folder first, then build the index.';
+    document.getElementById('sp-idx-btn').disabled = true;
+  } else {
+    sp2s.textContent = 'All CSV files detected. Ready to build index (takes a few minutes, app remains usable).';
+  }
+  document.getElementById('setup-hdr-sub').textContent =
+    d.csv_stale ? 'Data Update Available' : 'First Run Setup';
+  document.getElementById('setup-overlay').classList.remove('hid');
+}
+
+function goSp2() {
+  document.getElementById('sp1').classList.add('hid');
+  document.getElementById('sp2').classList.remove('hid');
+}
+function goSp1() {
+  document.getElementById('sp2').classList.add('hid');
+  document.getElementById('sp1').classList.remove('hid');
+}
+async function dismissSetup() {
+  document.getElementById('setup-overlay').classList.add('hid');
+  try { await fetch('/api/setup/complete', {method:'POST'}); } catch(e) {}
+}
+async function spStartIdx() {
+  const r = await fetch('/api/onrc/start-index', {method:'POST'});
+  const d = await r.json();
+  if (d.started) {
+    toast('Indexing started — runs in background', 'ok');
+    document.getElementById('sp-idx-btn').textContent = '⟳ Indexing…';
+    document.getElementById('sp-idx-btn').disabled = true;
+    pollIdx();
+    dismissSetup();
+  } else {
+    toast('Indexing already in progress', 'info');
+  }
+}
+
+// ═══ ONRC Banner ════════════════════════════════════════════════════
+function renderChip() {
+  if (!S.onrc) return;
+  const dot = document.getElementById('chip-dot');
+  const txt = document.getElementById('chip-txt');
+  const st  = S.onrc.index_state?.status;
+  if (st === 'indexing') {
+    dot.className = 'chip-dot spin'; txt.textContent = 'ONRC: Indexing…';
+  } else if (S.onrc.indexed) {
+    const n = S.onrc.stats?.companies || 0;
+    dot.className = 'chip-dot green'; txt.textContent = `ONRC ✓ ${N(n)} co.`;
+  } else if (S.onrc.files?.all_csv) {
+    dot.className = 'chip-dot'; txt.textContent = 'ONRC: Not indexed';
+  } else {
+    dot.className = 'chip-dot red'; txt.textContent = 'ONRC: Setup needed';
+  }
+  // Update ONRC enrich checkbox in bulk tab
+  const chk  = document.getElementById('onrc-enrich-chk');
+  const note = document.getElementById('onrc-enrich-note');
+  if (chk) {
+    if (S.onrc.indexed) {
+      chk.disabled = false;
+      chk.checked  = true;   // default on when ONRC is ready
+      if (note) note.style.color = '';
+    } else {
+      chk.disabled = true;
+      chk.checked  = false;
+      if (note) {
+        note.textContent = '⚠ ONRC not indexed — index ONRC data first to enable this option';
+        note.style.color = 'var(--warn)';
+      }
+    }
+  }
+}
+function chipClick() {
+  S.bannerOpen = !S.bannerOpen;
+  document.getElementById('banner').classList.toggle('open', S.bannerOpen);
+}
+function renderBanner() {
+  if (!S.onrc) return;
+  const {files={}, indexed, index_state={}, stats={}} = S.onrc;
+  const ico = document.getElementById('bn-ico');
+  const ttl = document.getElementById('bn-title');
+  const dsc = document.getElementById('bn-desc');
+  const act = document.getElementById('bn-acts');
+  const idxW = document.getElementById('idx-wrap');
+  if (index_state.status === 'indexing') {
+    ico.textContent='⟳'; ttl.textContent='Indexing ONRC Data';
+    dsc.textContent = index_state.message || '';
+    act.innerHTML = ''; idxW.classList.remove('hid');
+    const pct = index_state.total > 0 ? Math.round(index_state.current/index_state.total*100) : 0;
+    document.getElementById('idx-fill').style.width = pct + '%';
+    document.getElementById('idx-lbl').textContent = `${N(index_state.current)} / ${N(index_state.total)} — ${pct}%`;
+    if (!S.bannerOpen) { document.getElementById('banner').classList.add('open'); S.bannerOpen=true; }
+  } else if (indexed) {
+    ico.textContent='✅'; ttl.textContent='ONRC Ready';
+    dsc.textContent=`${N(stats.companies||0)} companies · ${N(stats.statuses||0)} statuses · ${N(stats.reps||0)} reps`;
+    act.innerHTML=`<button class="btn bg bsm" onclick="reIdx()">↺ Re-index</button>
+                   <button class="btn bg bsm" onclick="chipClick()">✕</button>`;
+    idxW.classList.add('hid');
+  } else if (files.all_csv) {
+    ico.textContent='📂'; ttl.textContent='ONRC Files Ready — Not Indexed';
+    dsc.textContent='Build the index to enable name search, stare firmă and representatives.';
+    act.innerHTML=`<button class="btn bp bsm" onclick="startIdx()">▶ Build Index</button>`;
+    idxW.classList.add('hid');
+    if (!S.bannerOpen) { document.getElementById('banner').classList.add('open'); S.bannerOpen=true; }
+  } else {
+    ico.textContent='📁'; ttl.textContent='ONRC Data — Setup Required';
+    dsc.innerHTML = `Download the files below from
+      <a href="https://data.gov.ro/organization/onrc" target="_blank" rel="noopener">data.gov.ro/organization/onrc</a>
+      and place them in the <code>data/</code> folder, then restart the app.`;
+    act.innerHTML=`<button class="btn bg bsm" onclick="chipClick()">✕</button>`;
+    idxW.classList.add('hid');
+    // Show file checklist inline in the banner description area
+    const fileList = [
+      {name:'OD_FIRME.csv',                    path:'data/',  desc:'Company registry (large)'},
+      {name:'OD_STARE_FIRMA.csv',               path:'data/',  desc:'Company status codes'},
+      {name:'OD_REPREZENTANTI_LEGALI.csv',      path:'data/',  desc:'Legal representatives'},
+      {name:'nomenclator.csv',                  path:'root',   desc:'Status descriptions'},
+    ].map(f => {
+      const ok = (files||{})[f.name.replace('.csv','').toLowerCase().replace('od_','').replace('_legali','_reps').replace('reprezentanti_reps','reps')];
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">
+        <span style="color:var(--err);font-weight:700">✗</span>
+        <span style="font-family:var(--mono);font-size:11.5px;font-weight:600">${f.name}</span>
+        <span style="color:var(--t4);font-size:11px">→ ${f.path}</span>
+        <span style="color:var(--t4);font-size:11px">${f.desc}</span>
+      </div>`;
+    }).join('');
+    // Append file list after description
+    setTimeout(()=>{
+      const descEl = document.getElementById('bn-desc');
+      if (descEl) descEl.innerHTML += `<div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border2)">${fileList}</div>`;
+    }, 0);
+    if (!S.bannerOpen) { document.getElementById('banner').classList.add('open'); S.bannerOpen=true; }
+  }
+}
+async function startIdx() {
+  const r = await fetch('/api/onrc/start-index', {method:'POST'});
+  const d = await r.json();
+  if (d.started) { toast('Indexing started','ok'); pollIdx(); }
+  else toast('Already indexing','info');
+}
+async function reIdx() {
+  if (!confirm('Re-index all ONRC data? Takes a few minutes.')) return;
+  startIdx();
+}
+let idxPoll = null;
+function pollIdx() {
+  clearInterval(idxPoll);
+  idxPoll = setInterval(async () => {
+    const r = await fetch('/api/onrc/index-progress');
+    const st = await r.json();
+    S.onrc.index_state = st;
+    if (st.status === 'done') { clearInterval(idxPoll); setTimeout(loadSetup, 800); toast('ONRC indexing complete!','ok'); }
+    else if (st.status === 'error') { clearInterval(idxPoll); toast('Indexing error: '+st.error,'err'); }
+    renderChip(); renderBanner();
+  }, 1500);
+}
+
+// ═══ Currency ═══════════════════════════════════════════════════════
+function setCur(c) {
+  S.currency = c;
+  document.getElementById('btn-ron').classList.toggle('on', c==='RON');
+  document.getElementById('btn-eur').classList.toggle('on', c==='EUR');
+  document.getElementById('eur-rate-wrap').classList.toggle('hid', c==='RON');
+  if (c === 'EUR') populateRateTable();
+  else document.getElementById('rate-popup').style.display = 'none';
+  if (S.checkResult) renderCheck(S.checkResult);
+  if (S.analyticsData) renderAnalytics(S.analyticsData);
+}
+
+function toggleRateTable() {
+  const p = document.getElementById('rate-popup');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function populateRateTable() {
+  const tbody = document.getElementById('rate-table-body');
+  const yrs = Object.keys(EUR_RATES_HIST).sort((a,b)=>b-a);
+  tbody.innerHTML = yrs.map(y => `
+    <tr style="border-top:1px solid var(--border2)">
+      <td style="padding:4px 6px;font-family:var(--mono);font-weight:700;color:var(--text)">${y}</td>
+      <td style="padding:4px 6px;text-align:right;font-family:var(--mono);color:var(--dark)">${EUR_RATES_HIST[y].toFixed(4)}</td>
+    </tr>`).join('');
+}
+
+function cvtRate(year) {
+  if (S.currency === 'RON') return 1;
+  return EUR_RATES_HIST[year] || EUR_RATES_HIST[Math.max(...Object.keys(EUR_RATES_HIST).map(Number))] || 5.0;
+}
+
+function cvt(val, year) {
+  if (!val || S.currency === 'RON') return val;
+  return val / cvtRate(year);
+}
+
+function curSfx() { return S.currency; }
+
+// ═══ Tabs ═══════════════════════════════════════════════════════════
+function setTab(id) {
+  ['c','b','k','m'].forEach(x => {
+    document.getElementById('pg-'+x).classList.toggle('on', x===id);
+    document.getElementById('tab-'+x).classList.toggle('on', x===id);
+  });
+  if (id === 'k') checkCaenSetup();
+}
+
+// ═══ Year Selectors ═════════════════════════════════════════════════
+function buildYrSelects(ns) {
+  const f = document.getElementById(ns+'-from');
+  const t = document.getElementById(ns+'-to');
+  f.innerHTML = YALL.map(y=>`<option value="${y}">${y}</option>`).join('');
+  t.innerHTML = YALL.map(y=>`<option value="${y}">${y}</option>`).join('');
+  f.value = '2023'; t.value = '2025';
+}
+function buildYrChips(ns, sel=[]) {
+  document.getElementById(ns+'-yrs').innerHTML =
+    YALL.map(y=>`<button class="yr${sel.includes(y)?' on':''}" data-y="${y}" onclick="this.classList.toggle('on')">${y}</button>`).join('');
+}
+function applyRange(ns) {
+  const from = +document.getElementById(ns+'-from').value;
+  const to   = +document.getElementById(ns+'-to').value;
+  const [lo,hi] = from<=to ? [from,to] : [to,from];
+  document.querySelectorAll(`#${ns}-yrs .yr`).forEach(b => {
+    b.classList.toggle('on', +b.dataset.y >= lo && +b.dataset.y <= hi);
+  });
+  if (ns === 'k') renderCaenYrWarnings();
+}
+function getYrs(ns) {
+  return [...document.querySelectorAll(`#${ns}-yrs .yr.on`)].map(b=>+b.dataset.y).sort((a,b)=>a-b);
+}
+function yrQ(ns,n) {
+  // Use chips actually in the DOM — not global YALL (avoids 2025 mismatch on CAEN tab)
+  const chips = [...document.querySelectorAll(`#${ns}-yrs .yr`)];
+  if (!chips.length) return;
+  chips.forEach(b=>b.classList.remove('on'));
+  chips.slice(-n).forEach(b=>b.classList.add('on'));
+  // Sync from/to selects
+  const sel = chips.slice(-n);
+  if (document.getElementById(ns+'-from')) {
+    document.getElementById(ns+'-from').value = sel[0].dataset.y;
+    document.getElementById(ns+'-to').value   = sel[sel.length-1].dataset.y;
+  }
+  if (ns === 'k') renderCaenYrWarnings();
+}
+function yrA(ns) {
+  const chips = [...document.querySelectorAll(`#${ns}-yrs .yr`)];
+  chips.forEach(b=>b.classList.add('on'));
+  if (chips.length && document.getElementById(ns+'-from')) {
+    document.getElementById(ns+'-from').value = chips[0].dataset.y;
+    document.getElementById(ns+'-to').value   = chips[chips.length-1].dataset.y;
+  }
+  if (ns === 'k') renderCaenYrWarnings();
+}
+function yrN(ns) {
+  document.querySelectorAll(`#${ns}-yrs .yr`).forEach(b=>b.classList.remove('on'));
+  if (ns === 'k') renderCaenYrWarnings();
+}
+
+// ═══ Smart Search ════════════════════════════════════════════════════
+function onSrch(el) {
+  const v=el.value.trim(); clearTimeout(S.acT); hideAc();
+  const hint=document.getElementById('srch-hint');
+  if (!v) { hint.textContent='Enter a CUI number or company name'; hint.className='srch-hint'; return; }
+  if (/^\d+$/.test(v)) { hint.textContent='CUI mode — press Enter or click Look Up'; hint.className='srch-hint mode-cui'; return; }
+  if (!S.onrc?.indexed) { hint.textContent='Name search requires ONRC index'; hint.className='srch-hint'; return; }
+  if (v.length<2) { hint.textContent='Type more…'; return; }
+  hint.textContent='Searching…';
+  S.acT = setTimeout(() => doNs(v), 300);
+}
+function onSrchKey(e) {
+  const drop=document.getElementById('ac-drop'); const vis=!drop.classList.contains('hid');
+  if (e.key==='Enter') { if(vis&&S.acIdx>=0&&S.acItems[S.acIdx]) { selectAc(S.acItems[S.acIdx]); return; } doCheck(); return; }
+  if (e.key==='ArrowDown') { S.acIdx=Math.min(S.acIdx+1,S.acItems.length-1); hlAc(); e.preventDefault(); }
+  if (e.key==='ArrowUp')   { S.acIdx=Math.max(S.acIdx-1,-1); hlAc(); e.preventDefault(); }
+  if (e.key==='Escape')    { hideAc(); }
+}
+async function doNs(q) {
+  const r = await fetch(`/api/search/name?q=${encodeURIComponent(q)}&limit=20`);
+  const items = await r.json();
+  S.acItems=items; S.acIdx=-1; renderAc(items);
+}
+function renderAc(items) {
+  const d=document.getElementById('ac-drop');
+  if (!items?.length) { d.innerHTML=`<div class="ac-nil">No companies found</div>`; d.classList.remove('hid'); return; }
+  d.innerHTML=items.map((it,i)=>{
+    const loc=[it.adr_localitate,it.adr_judet].filter(Boolean).join(', ');
+    const cui=it.cui&&it.cui!==0?'CUI '+it.cui:'No CUI';
+    return `<div class="ac-it" onclick="selectAc(S.acItems[${i}])">
+      <div><div class="ac-n">${esc(it.denumire)}</div>
+      <div class="ac-m">${[it.forma_juridica,loc].filter(Boolean).map(esc).join(' · ')||'—'}</div></div>
+      <div class="ac-c">${cui}</div></div>`;
+  }).join('');
+  d.classList.remove('hid');
+}
+function hlAc() { document.querySelectorAll('.ac-it').forEach((el,i)=>el.classList.toggle('hi',i===S.acIdx)); }
+function hideAc() { document.getElementById('ac-drop').classList.add('hid'); S.acItems=[]; S.acIdx=-1; }
+function selectAc(item) {
+  if(!item) return;
+  if (!item.cui||item.cui===0) { toast('No CUI for this entity','info'); return; }
+  document.getElementById('cui-in').value=item.cui;
+  document.getElementById('srch-hint').textContent=`Selected: ${item.denumire}`;
+  document.getElementById('srch-hint').className='srch-hint mode-cui';
+  hideAc(); doCheck();
+}
+
+// ═══ Check ══════════════════════════════════════════════════════════
+async function doCheck() {
+  const raw=document.getElementById('cui-in').value.trim();
+  if (!raw) { toast('Enter a CUI or company name','err'); return; }
+  const yrs=getYrs('c');
+  if (!yrs.length) { toast('Select at least one year','err'); return; }
+  const btn=document.getElementById('chk-btn');
+  btn.disabled=true; btn.textContent='⟳ Loading…';
+  document.getElementById('chk-result').innerHTML=`<div class="card" style="text-align:center;padding:48px">
+    <div class="spin" style="margin:0 auto 12px"></div>
+    <div style="color:var(--t3)">Fetching data from ANAF…</div></div>`;
+  try {
+    const r=await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cui:raw,years:yrs})});
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Request failed'); }
+    const data=await r.json();
+    S.checkResult=data;
+
+    // If 2025 selected but no 2025 financials found → offer fallback to 2024
+    if (yrs.includes(2025)) {
+      const fd25 = (data.financials||{})[2025];
+      const has25 = fd25 && ((fd25.net_turnover||0) > 0 || (fd25.total_equity||0) > 0);
+      if (!has25) {
+        const name = (data.company||{}).name || `CUI ${raw}`;
+        btn.disabled=false; btn.textContent='Look Up';
+        _show2025Modal(
+          `<strong>${esc(name)}</strong> has no 2025 financials yet in ANAF.`,
+          '2024 data instead',
+          () => { // fallback to 2024
+            const fallbackYrs = yrs.map(y => y===2025 ? 2024 : y);
+            btn.disabled=true; btn.textContent='⟳ Loading…';
+            fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({cui:raw,years:[...new Set(fallbackYrs)]})})
+              .then(r=>r.json()).then(d=>{ S.checkResult=d; renderCheck(d);
+                toast('Showing 2024 financials (2025 not yet available)','info'); })
+              .finally(()=>{ btn.disabled=false; btn.textContent='Look Up'; });
+          },
+          () => renderCheck(data)  // show anyway without 2025
+        );
+        return;
+      }
+    }
+    renderCheck(data);
+  } catch(e) {
+    document.getElementById('chk-result').innerHTML=`<div class="card"><div class="empty">
+      <div class="ei">⚠️</div><div class="et">Error</div><div class="es">${esc(e.message)}</div></div></div>`;
+    toast(e.message,'err');
+  } finally { btn.disabled=false; btn.textContent='Look Up'; }
+}
+
+function renderCheck(d) {
+  ['cc-rev','cc-net'].forEach(x=>{if(C[x]){try{C[x].destroy();}catch(e){}delete C[x];}});
+  const co=d.company||{}, fins=d.financials||{}, onrc=d.onrc||null;
+  const yrs=(d.years_with_data||d.years_requested||[]).slice().sort((a,b)=>a-b);
+  const cur=curSfx();
+  let h='';
+
+  if (d.has_company_info) {
+    const addr=co.address_registered_office||{};
+    h+=`<div class="co-hdr">
+      <div class="co-name">${esc(co.name)}</div>
+      <div class="co-meta">
+        <span class="m">CUI <strong style="font-family:var(--mono)">${d.cui}</strong></span>
+        ${co.registration_number?`<span class="m">📋 ${esc(co.registration_number)}</span>`:''}
+        ${co.legal_form?`<span class="m">⚖️ ${esc(co.legal_form)}</span>`:''}
+        ${addr.county?`<span class="m">📍 ${esc(addr.county)}</span>`:''}
+        ${co.registration_date?`<span class="m">📅 ${esc(co.registration_date)}</span>`:''}
+      </div>
+      <div class="co-flags">${chkFlags(co)}</div>
+    </div>`;
+
+    const addr2=co.address_registered_office||{};
+    const addrStr=co.address_full||[addr2.street,addr2.number,addr2.locality,addr2.county].filter(Boolean).join(', ');
+    h+=`<div class="sh"><span>ANAF Company Data</span></div><div class="card">
+      <div class="dg">
+        ${di('CUI',d.cui,'mono')}${di('Registration №',co.registration_number,'mono')}
+        ${di('Reg. Date',co.registration_date)}${di('Legal Form',co.legal_form)}
+        ${di('CAEN Code',co.caen_code,'mono')}${di('Org. Form',co.organization_form)}
+        ${di('Fiscal Authority',co.fiscal_authority)}${di('Phone',co.phone)}
+        ${di('IBAN',co.iban,'mono')}
+        ${di('VAT Registered',co.is_vat_registered?'<span class="v ok">Yes ✓</span>':'No',true)}
+        ${di('Inactive',co.is_inactive?'<span class="v err">Yes ⚠</span>':'<span class="v ok">No ✓</span>',true)}
+        ${di('Cash VAT',co.is_cash_vat?'<span class="v ok">Yes</span>':'No',true)}
+        ${di('e-Factura',co.is_ro_efactura?'<span class="v ok">Yes</span>':'No',true)}
+      </div>
+      ${addrStr?`<div class="addr-box mt12"><div class="addr-lbl">Registered Address</div>
+        <div class="addr-val">${esc(addrStr)}</div>
+        ${addr2.postal_code?`<div style="font-size:11px;color:var(--t4);margin-top:2px">Postal: ${esc(addr2.postal_code)}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }
+
+  // ONRC Firma
+  if (onrc?.firma) {
+    const f=onrc.firma;
+    const parts=[f.adr_den_strada,f.adr_nr_strada,f.adr_bloc?'Bl.'+f.adr_bloc:'',
+      f.adr_scara?'Sc.'+f.adr_scara:'',f.adr_etaj?'Et.'+f.adr_etaj:'',
+      f.adr_apartament?'Ap.'+f.adr_apartament:'',f.adr_localitate,f.adr_judet,f.adr_cod_postal].filter(Boolean);
+    h+=`<div class="sh"><span>ONRC Registry Data</span></div><div class="card">
+      <div class="dg">
+        ${di('EUID',f.euid,'mono')}${di('Reg. № (ONRC)',f.cod_inmatriculare,'mono')}
+        ${di('Reg. Date (ONRC)',f.data_inmatriculare)}${di('Legal Form (ONRC)',f.forma_juridica)}
+        ${di('County',f.adr_judet)}${di('City',f.adr_localitate)}${di('Postal Code',f.adr_cod_postal,'mono')}
+        ${f.web?`<div class="di"><label>Website</label><a class="v" href="${/^https?:\/\//i.test(f.web)?f.web:'https://'+f.web}" target="_blank" rel="noopener">${esc(f.web)}</a></div>`:''}
+        ${f.tara_firma_mama?di('Parent Co. Country',f.tara_firma_mama):''}
+        ${di('Country',f.adr_tara||'România')}
+      </div>
+      ${parts.length?`<div class="addr-box mt12"><div class="addr-lbl">ONRC Address</div><div class="addr-val">${esc(parts.join(', '))}</div></div>`:''}
+    </div>`;
+  }
+
+  // Stare firmă
+  const stare=onrc?.stare||[];
+  h+=`<div class="sh"><span>Company Status (Stare Firmă)</span></div><div class="card">`;
+  if (!S.onrc?.indexed) {
+    h+=`<div style="font-size:12.5px;color:var(--t4);font-style:italic">ONRC index not available — build index to see status.</div>`;
+  } else if (!stare.length) {
+    h+=`<div class="stare-ok">✅ No special status recorded — appears normally active.</div>`;
+  } else {
+    h+=`<div class="stare-wrap">`;
+    stare.forEach(s=>{
+      const nm=(s.denumire||'').toLowerCase();
+      const cls=nm.includes('radi')?'l-err':nm.includes('dizolv')||nm.includes('suspend')?'l-warn':'l-mid';
+      h+=`<span class="b ${cls}">${esc(s.denumire)}</span>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+
+  // Representatives
+  const reps=onrc?.reprezentanti||[];
+  h+=`<div class="sh"><span>Legal Representatives</span></div><div class="card">`;
+  if (!S.onrc?.indexed) {
+    h+=`<div style="font-size:12.5px;color:var(--t4);font-style:italic">ONRC index required.</div>`;
+  } else if (!reps.length) {
+    h+=`<div style="font-size:13px;color:var(--t4);font-style:italic;padding:4px 0">No representative data found.</div>`;
+  } else {
+    h+=`<div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th>Role</th><th>Residence</th><th>Country</th><th>Date of Birth</th></tr></thead><tbody>`;
+    reps.forEach(r=>{
+      const loc=[r.localitate,r.judet].filter(Boolean).join(', ');
+      h+=`<tr><td><strong>${esc(r.persoana||'—')}</strong></td>
+        <td><span class="role-chip">${esc(r.calitate||'—')}</span></td>
+        <td>${esc(loc||'—')}</td><td>${esc(r.tara||'—')}</td>
+        <td><span class="mono" style="font-size:11.5px">${esc(r.data_nastere||'—')}</span></td></tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`</div>`;
+
+  // Financial KPIs + CAGR
+  if (d.has_financials) {
+    const ly=yrs.slice().reverse().find(y=>fins[y]);
+    const lf=ly?fins[ly]:null;
+    if (lf) {
+      const rv=cvt(lf.net_turnover,ly), nr=cvt(lf.net_result,ly);
+      const eq=cvt(lf.total_equity,ly), lb=cvt(lf.liabilities,ly);
+      h+=`<div class="sh"><span>Key Financials — ${ly} (${cur})</span></div>
+      <div class="kpi-grid">
+        ${kpiMoney('Net Turnover',rv,ly,lf.net_turnover,'pri')}
+        ${kpiMoney('Net Result',nr,ly,lf.net_result,lf.net_result>=0?'ok':'err')}
+        ${kpi('Profit Margin',lf.profit_margin_pct!=null?fmtPct(lf.profit_margin_pct):'—','Net / Revenue',lf.profit_margin_pct>=0?'ok':'err')}
+        ${kpiMoney('Total Equity',eq,ly,lf.total_equity)}
+        ${kpiMoney('Liabilities',lb,ly,lf.liabilities)}
+        ${kpi('Employees',N(lf.avg_employees),'Avg headcount')}
+      </div>`;
+    }
+
+    // CAGR block
+    const chartYrs=yrs.filter(y=>fins[y]);
+    if (chartYrs.length>=2) {
+      const sy=chartYrs[0], ey=chartYrs[chartYrs.length-1], ny=ey-sy;
+      const sv=fins[sy]?.net_turnover, ev=fins[ey]?.net_turnover;
+      const sn=fins[sy]?.net_result,   en=fins[ey]?.net_result;
+      const cagrRev = sv>0&&ev>0&&ny>0 ? ((ev/sv)**(1/ny)-1)*100 : null;
+      const cagrNet = sn>0&&en>0&&ny>0 ? ((en/sn)**(1/ny)-1)*100 : null;
+      h+=`<div class="sh"><span>CAGR (${sy}→${ey}, ${ny}yr)</span></div>
+      <div class="cagr-card">
+        <div class="cagr-item">
+          <div class="cagr-lbl">Revenue CAGR</div>
+          <div class="cagr-v ${cagrRev==null?'neu':cagrRev>=0?'pos':'neg'}">${cagrRev!=null?fmtPct(cagrRev):'N/A'}</div>
+          <div class="cagr-period">${fmtRON(sv,sy)} → ${fmtRON(ev,ey)} ${cur}</div>
+        </div>
+        <div class="cagr-item">
+          <div class="cagr-lbl">Net Result CAGR</div>
+          <div class="cagr-v ${cagrNet==null?'neu':cagrNet>=0?'pos':'neg'}">${cagrNet!=null?fmtPct(cagrNet):'N/A'}</div>
+          <div class="cagr-period">${sn>0&&en>0?fmtRON(sn,sy)+' → '+fmtRON(en,ey)+' '+cur:'Requires positive values at both ends'}</div>
+        </div>
+      </div>`;
+
+      // Charts
+      h+=`<div class="sh"><span>Financial Charts</span></div>
+      <div class="ch-row">
+        <div class="ch-card"><div class="ch-title">Revenue (${cur})</div><div class="ch-box"><canvas id="cc-rev"></canvas></div></div>
+        <div class="ch-card"><div class="ch-title">Net Result (${cur})</div><div class="ch-box"><canvas id="cc-net"></canvas></div></div>
+      </div>`;
+    }
+
+    // Financial table
+    h+=`<div class="sh"><span>Financial Details (${cur})</span></div>
+    <div class="card"><div class="fin-sc"><table class="fin">
+      <thead><tr><th>Indicator</th>${yrs.map(y=>`<th>${y}${cur==='EUR'?` <span style="font-size:9px;opacity:.7">(÷${EUR_RATES_HIST[y]?.toFixed(2)})</span>`:''}</th>`).join('')}</tr></thead>
+      <tbody>`;
+    const FROWS=[
+      ['Net Turnover','net_turnover'],['Total Revenue','total_revenue'],['Total Expenses','total_expenses'],
+      ['Gross Result','gross_result'],['Net Result','net_result'],['Profit Margin %','profit_margin_pct'],
+      ['BAL',''],
+      ['Fixed Assets','fixed_assets'],['Current Assets','current_assets'],['Inventories','inventories'],
+      ['Receivables','receivables'],['Cash & Bank','cash_and_bank'],
+      ['BAL2',''],
+      ['Total Equity','total_equity'],['Liabilities','liabilities'],['Provisions','provisions'],
+      ['BAL3',''],
+      ['Avg Employees','avg_employees'],
+    ];
+    const BALMAPS={'BAL':'Balance Sheet','BAL2':'Liquidity','BAL3':'Structure & Headcount'};
+    FROWS.forEach(([lbl,key])=>{
+      if (key.startsWith('BAL')) { h+=`<tr class="sub-hdr"><td colspan="${1+yrs.length}">${BALMAPS[key]||''}</td></tr>`; return; }
+      const isPct=key==='profit_margin_pct', isResult=key==='net_result'||key==='gross_result', isEmp=key==='avg_employees';
+      h+=`<tr><td>${lbl}</td>`;
+      yrs.forEach(y=>{
+        const f=fins[y]; if(!f){h+=`<td>—</td>`;return;}
+        const v=f[key]; if(v==null){h+=`<td>—</td>`;return;}
+        let cls='',txt;
+        if (isPct) { txt=fmtPct(v); cls=v>=0?'pos':'neg'; }
+        else if (isResult) { const cv=cvt(v,y); txt=fmtN(Math.round(cv)); cls=v>=0?'pos':'neg'; }
+        else if (isEmp)    { txt=N(v); }
+        else               { txt=fmtN(Math.round(cvt(v,y))); }
+        h+=`<td class="${cls}">${txt}</td>`;
+      });
+      h+=`</tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+
+    // VAT periods
+    if ((co.vat_periods||[]).length) {
+      h+=`<div class="sh"><span>VAT Registration Periods</span></div><div class="card">
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Start</th><th>End</th><th>Notes</th></tr></thead><tbody>`;
+      (co.vat_periods||[]).forEach(p=>{
+        h+=`<tr><td><span class="mono">${esc(p.start||'—')}</span></td>
+          <td><span class="mono">${esc(p.end||'—')}</span></td>
+          <td>${esc(p.reason||'—')}</td></tr>`;
+      });
+      h+=`</tbody></table></div></div>`;
+    }
+  } else if (!d.has_company_info) {
+    // nothing
+  } else {
+    h+=`<div class="sh"><span>Financials</span></div><div class="card">
+      <div class="empty" style="padding:22px"><div class="ei">📉</div>
+      <div class="et">No financial data for selected years</div></div></div>`;
+  }
+
+  document.getElementById('chk-result').innerHTML = h;
+
+  // Render charts
+  const chy=yrs.filter(y=>fins[y]);
+  if (chy.length>=2) {
+    setTimeout(()=>{
+      mkBar('cc-rev', `Revenue (${cur})`, chy.map(String), chy.map(y=>Math.round(cvt(fins[y]?.net_turnover||0,y))), {color:'#0096FF'});
+      mkBarColor('cc-net', `Net Result (${cur})`, chy.map(String), chy.map(y=>Math.round(cvt(fins[y]?.net_result||0,y))));
+    }, 150);
+  }
+}
+
+function chkFlags(co) {
+  const f=[];
+  if (co.is_vat_registered) f.push(`<span class="b b-ok">✓ VAT Payer</span>`);
+  if (co.is_inactive)        f.push(`<span class="b b-err">⚠ Inactive</span>`);
+  if (co.is_cash_vat)        f.push(`<span class="b b-inf">Cash VAT</span>`);
+  if (co.is_split_vat)       f.push(`<span class="b b-inf">Split VAT</span>`);
+  if (co.is_ro_efactura)     f.push(`<span class="b b-inf">e-Factura</span>`);
+  if (!f.length)             f.push(`<span class="b b-dim">No special flags</span>`);
+  return f.join(' ');
+}
+
+// ═══ Chart helpers ═══════════════════════════════════════════════════
+function mkChart(id, type, data, opts={}) {
+  if(C[id]){try{C[id].destroy();}catch(e){}delete C[id];}
+  const ctx=document.getElementById(id); if(!ctx){console.warn('Canvas missing:',id);return;}
+  const{plugins={},scales={},indexAxis,...rest}=opts;
+  C[id]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...(indexAxis?{indexAxis}:{}),plugins:{legend:{display:false},...plugins},scales,...rest}});
+}
+function mkBar(id,label,labels,data,opts={}) {
+  if(C[id]){try{C[id].destroy();}catch(e){}delete C[id];}
+  const ctx=document.getElementById(id); if(!ctx)return;
+  C[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:opts.color||'#0096FF',borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtN(c.parsed.y)+' '+curSfx()}}},
+      scales:{x:{grid:GRD,ticks:TCK,border:{display:false}},y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}}}});
+}
+function mkBarColor(id,label,labels,data) {
+  if(C[id]){try{C[id].destroy();}catch(e){}delete C[id];}
+  const ctx=document.getElementById(id); if(!ctx)return;
+  C[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:data.map(v=>v>=0?'#059669':'#DC2626'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtN(c.parsed.y)+' '+curSfx()}}},
+      scales:{x:{grid:GRD,ticks:TCK,border:{display:false}},y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}}}});
+}
+
+// ═══ BULK ════════════════════════════════════════════════════════════
+let bulkFile=null;
+function fileChosen(inp) {
+  const f=inp.files[0]; if(!f)return;
+  bulkFile=f;
+  document.getElementById('dz-ttl').textContent=f.name;
+  document.getElementById('file-info').textContent=`(${(f.size/1024).toFixed(1)} KB)`;
+  document.getElementById('start-btn').disabled=false;
+  toast('File loaded: '+f.name,'ok');
+}
+function dzDrag(e,on){e.preventDefault();document.getElementById('dz').classList.toggle('drag',!!on);}
+function dzDrop(e){e.preventDefault();const f=e.dataTransfer?.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('bfile').files=dt.files;fileChosen(document.getElementById('bfile'));}document.getElementById('dz').classList.remove('drag');}
+
+function onOfflineToggle() {
+  const chk  = document.getElementById('offline-fin-chk');
+  const note = document.getElementById('offline-fin-note');
+  if (!chk || !note) return;
+  if (chk.checked) {
+    const caenIndexed = !!window._caenIndexed;
+    if (!caenIndexed) {
+      chk.checked = false;
+      toast('CAEN txt-file index required for offline mode — run the CAEN indexer first', 'err');
+      return;
+    }
+    note.innerHTML = '⚡ <strong>Offline mode ON</strong> — reads from caen.db (no bilant API calls). ' +
+      (S.onrc?.indexed
+        ? 'ONRC indexed — metadata also offline (zero API calls).'
+        : 'ONRC not indexed — company names/metadata still from ANAF.');
+    note.style.color = 'var(--ok)';
+  } else {
+    note.textContent = 'Reads I1–I20 from local txt-file index instead of ANAF bilant API. Seconds instead of minutes. May have minor inaccuracies vs ANAF source.';
+    note.style.color = '';
+  }
+}
+async function startBulk() {
+  if (!bulkFile) { toast('Upload a CSV first','err'); return; }
+  const yrs=getYrs('b'); if (!yrs.length) { toast('Select at least one year','err'); return; }
+  const onrcEnrich = document.getElementById('onrc-enrich-chk')?.checked ? 'true' : 'false';
+  const offlineFin  = document.getElementById('offline-fin-chk')?.checked  ? 'true' : 'false';
+  const fd=new FormData(); fd.append('file',bulkFile); fd.append('years',yrs.join(','));
+  fd.append('onrc_enrich', onrcEnrich);
+  fd.append('offline_financials', offlineFin);
+  document.getElementById('start-btn').disabled=true;
+  try {
+    const r=await fetch('/api/bulk/start',{method:'POST',body:fd});
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Failed'); }
+    const d=await r.json();
+    S.jobId=d.job_id; S.jobTotal=d.total; S.jobYears=d.years; S.analyticsAnchor=null;
+    document.getElementById('b-setup').classList.add('hid');
+    document.getElementById('b-prog').classList.remove('hid');
+    toast(`Job ${d.job_id} started — ${d.total} companies`,'ok');
+    S.pollT=setInterval(pollBulk,1500);
+  } catch(e) { toast(e.message,'err'); document.getElementById('start-btn').disabled=false; }
+}
+async function pollBulk() {
+  const r=await fetch(`/api/bulk/status/${S.jobId}`);
+  const st=await r.json();
+  renderProg(st);
+  if (['done','cancelled','error'].includes(st.status)) { clearInterval(S.pollT); showDone(st); }
+}
+function renderProg(st) {
+  const pct = st.total > 0 ? Math.round(st.processed / st.total * 100) : 0;
+  document.getElementById('p-done').textContent = N(st.processed);
+  document.getElementById('p-tot').textContent  = '/ ' + N(st.total);
+  document.getElementById('p-pct').textContent  = pct + '%';
+  document.getElementById('p-bar').style.width  = pct + '%';
+  document.getElementById('p-ok').textContent   = N(st.success);
+  document.getElementById('p-fail').textContent = N(st.failed);
+  document.getElementById('p-rem').textContent  = N(st.remaining);
+
+  // Phase label
+  const phaseLabels = {
+    idle: 'Waiting', loading_financials: '⟳ Loading Financials',
+    loading_meta: '⟳ Loading ONRC Metadata', loading_meta_anaf: '⟳ ANAF Metadata Fallback',
+    company_info: '⟳ Company Identity', financials: '⟳ Fetching Financials',
+    processing: '⚙ Processing', enriching: '🔍 Enriching', done: '✅ Done',
+  };
+  const pl = document.getElementById('p-phase-label');
+  if (pl) pl.textContent = phaseLabels[st.phase] || 'Progress';
+
+  // Mode badge
+  const mb = document.getElementById('p-mode-badge');
+  if (mb) {
+    if (st.offline_financials) {
+      mb.textContent = '⚡ OFFLINE';
+      mb.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:100px;margin-left:8px;font-weight:600;background:#D1FAE5;color:#065F46';
+    } else {
+      mb.textContent = '🌐 ONLINE';
+      mb.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:100px;margin-left:8px;font-weight:600;background:#EFF6FF;color:#1E40AF';
+    }
+  }
+
+  // Live message (phase detail)
+  const msgEl = document.getElementById('p-msg');
+  if (msgEl) msgEl.textContent = st.message || '';
+
+  // Current company
+  const curEl = document.getElementById('p-cur');
+  if (curEl) {
+    if (st.current_cui)
+      curEl.textContent = `→ ${st.current_name || ''}  (CUI ${st.current_cui})`;
+    else if (st.phase && st.phase !== 'processing')
+      curEl.textContent = '';
+    else
+      curEl.textContent = '';
+  }
+
+  // Rate, elapsed, ETA
+  const elapsed = st.elapsed_seconds || 0;
+  const rate    = elapsed > 0 && st.processed > 0 ? st.processed / elapsed : 0;
+  const remain  = st.remaining || 0;
+  const eta_s   = rate > 0 ? Math.round(remain / rate) : null;
+
+  const rateEl = document.getElementById('p-rate');
+  if (rateEl) rateEl.textContent = rate > 0 ? `${rate.toFixed(rate >= 10 ? 0 : 1)}/s` : '—';
+
+  const elEl = document.getElementById('p-elapsed');
+  if (elEl) elEl.textContent = fmtT(Math.round(elapsed));
+
+  const etaEl = document.getElementById('p-eta2');
+  if (etaEl) etaEl.textContent = eta_s !== null ? fmtT(eta_s) : '—';
+
+  // Keep old p-eta in header too
+  document.getElementById('p-eta').textContent = eta_s ? 'ETA ' + fmtT(eta_s) : '';
+
+  // Status badge
+  const bs = document.getElementById('b-status');
+  bs.textContent = st.status.toUpperCase();
+  bs.className = 'b ' + (st.status === 'running' ? 'l-info' : st.status === 'paused' ? 'l-warn' : 'l-neu');
+  document.getElementById('btn-pause').style.display  = st.status === 'paused' ? 'none' : '';
+  document.getElementById('btn-resume').style.display = st.status === 'paused' ? '' : 'none';
+
+  // Log
+  const lb   = document.getElementById('logbox');
+  const logs = st.log_entries || [];
+  if (logs.length) {
+    lb.innerHTML = logs.slice(-60).map(l => `<p>${esc(l)}</p>`).join('');
+    lb.scrollTop = lb.scrollHeight;
+  }
+}
+function showDone(st) {
+  // If 2025 was in the job years, check coverage before showing done screen
+  if ((st.years||[]).includes(2025)) {
+    _checkBulk2025Coverage(st);
+    return;
+  }
+  _renderDone(st);
+}
+
+async function _checkBulk2025Coverage(st) {
+  try {
+    const r = await fetch(`/api/bulk/year-coverage/${S.jobId}?year=2025`);
+    const cov = await r.json();
+    if (cov.missing > 0) {
+      _show2025BulkModal(cov, st);
+      return;
+    }
+  } catch(e) { /* coverage check failed, proceed normally */ }
+  _renderDone(st);
+}
+
+function _renderDone(st) {
+  document.getElementById('b-prog').classList.add('hid');
+  document.getElementById('b-done').classList.remove('hid');
+  document.getElementById('d-tot').textContent=st.total;
+  document.getElementById('d-ok').textContent=st.success;
+  document.getElementById('d-fail').textContent=st.failed;
+  document.getElementById('d-time').textContent=fmtT(st.elapsed_seconds);
+  document.getElementById('done-sub').textContent=`${st.success} succeeded · ${st.failed} failed · ${st.elapsed_seconds?.toFixed(0)}s`;
+  document.getElementById('btn-retry').disabled=!st.failed;
+  S.jobYears  = st.years || [];
+  S.jobTotal  = st.total || S.jobTotal;
+  loadAnalytics(S.jobId, null, st.years);
+}
+async function loadAnalytics(jid, anchorYear, allYears) {
+  S.analyticsAnchor=anchorYear;
+  let url=`/api/bulk/analytics/${jid}`;
+  const params = new URLSearchParams();
+  if (anchorYear) params.set('anchor_year', anchorYear);
+  else if (S.anchor2025fallback) params.set('anchor_year', 2024);
+  if (S.require2025) params.set('require_year', 2025);
+  if ([...params].length) url += '?' + params.toString();
+  const r=await fetch(url);
+  const a=await r.json();
+  S.analyticsData={...a, _allYears:allYears||a.available_years};
+  renderAnalytics(S.analyticsData);
+}
+
+function renderAnalytics(a) {
+  if (!a||a.empty||!a.companies_with_financials) return;
+  const cur=curSfx();
+  const rev=a.revenue_stats||{}, net=a.net_result_stats||{}, emp=a.employee_stats||{};
+  const pc=a.portfolio_cagr||{};
+  const anchor=a.anchor_year||0;
+  const allYrs=a._allYears||a.available_years||[];
+
+  // Build anchor year selector
+  let anchSel='';
+  if (allYrs.length>1) {
+    anchSel=`<div class="anch-wrap">
+      <span class="anch-lbl">Aggregate by year:</span>
+      <select class="anch-sel" onchange="changeAnchor(this.value)">
+        ${allYrs.map(y=>`<option value="${y}"${y===anchor?' selected':''}>${y}</option>`).join('')}
+      </select>
+      <span style="font-size:11.5px;color:var(--t4)">Only companies with data in selected year count towards aggregates</span>
+    </div>`;
+  }
+
+  // Convert stats for display
+  const convRev=(v)=>v!=null?Math.round(cvt(v,anchor)):null;
+
+  document.getElementById('a-wrap').innerHTML=`
+  <div class="sh" style="margin-top:22px"><span>Portfolio Statistics (${cur})</span></div>
+  ${anchSel}
+  <div class="kpi-grid">
+    ${kpiMoney('Avg Revenue',convRev(rev.avg),anchor,rev.avg,'pri')}
+    ${kpiMoney('Median Revenue',convRev(rev.median),anchor,rev.median)}
+    ${kpiMoney('Total Revenue',convRev(rev.total),anchor,rev.total)}
+    ${kpi('Profitable',a.profitable_count,`${a.companies_with_financials?Math.round(a.profitable_count/a.companies_with_financials*100):'?'}% of set`,'ok')}
+    ${kpi('Loss-making',a.loss_count,'','err')}
+    ${kpiMoney('Avg Net Result',convRev(net.avg),anchor,net.avg,net.avg>=0?'ok':'err')}
+    ${kpi('VAT Registered',a.vat_registered_count,'companies')}
+    ${kpi('Inactive',a.inactive_count,'companies')}
+    ${kpi('Total Employees',N(emp.total),'avg headcount')}
+  </div>
+
+  <div class="sh" style="margin-top:22px"><span>Portfolio CAGR</span></div>
+  <div class="cagr-card">
+    <div class="cagr-item">
+      <div class="cagr-lbl">Revenue CAGR (median)</div>
+      <div class="cagr-v ${pc.revenue_median==null?'neu':pc.revenue_median>=0?'pos':'neg'}">${pc.revenue_median!=null?fmtPct(pc.revenue_median):'N/A'}</div>
+      <div class="cagr-period">${pc.start_year||'?'} → ${pc.end_year||'?'} · ${pc.companies_count||0} companies</div>
+    </div>
+    <div class="cagr-item">
+      <div class="cagr-lbl">Net Result CAGR (median)</div>
+      <div class="cagr-v ${pc.net_median==null?'neu':pc.net_median>=0?'pos':'neg'}">${pc.net_median!=null?fmtPct(pc.net_median):'N/A'}</div>
+      <div class="cagr-period">Avg: ${pc.revenue_avg!=null?fmtPct(pc.revenue_avg):'N/A'} revenue / ${pc.net_avg!=null?fmtPct(pc.net_avg):'N/A'} net</div>
+    </div>
+  </div>
+
+  <div class="sh" style="margin-top:22px"><span>Performance Overview</span></div>
+  <div class="ch-row">
+    <div class="ch-card"><div class="ch-title">Profitability Split</div><div class="ch-box"><canvas id="ch-dn"></canvas></div></div>
+    <div class="ch-card"><div class="ch-title">Revenue Trend (${cur})</div><div class="ch-box"><canvas id="ch-tr"></canvas></div></div>
+  </div>
+
+  <div class="sh" style="margin-top:14px"><span>Top 10 by Revenue (${cur})</span></div>
+  <div class="ch-card"><div class="ch-title">Highest Net Turnover</div><div class="ch-box-lg"><canvas id="ch-rb"></canvas></div></div>
+
+  <div class="sh" style="margin-top:14px"><span>Distribution</span></div>
+  <div class="ch-row">
+    <div class="ch-card"><div class="ch-title">By Sector (CAEN)</div><div class="ch-box-xl"><canvas id="ch-sc"></canvas></div></div>
+    <div class="ch-card"><div class="ch-title">By County</div><div class="ch-box-xl"><canvas id="ch-cy"></canvas></div></div>
+  </div>
+
+  <div class="sh" style="margin-top:14px"><span>Profit / Loss Leaders</span></div>
+  <div class="ch-row">
+    <div class="ch-card"><div class="ch-title">Most Profitable</div><div class="ch-box"><canvas id="ch-tp"></canvas></div></div>
+    <div class="ch-card"><div class="ch-title">Biggest Losses</div><div class="ch-box"><canvas id="ch-bl"></canvas></div></div>
+  </div>`;
+
+  // ━━━ setTimeout(150) FIX: gives browser time to measure canvas after DOM layout ━━━
+  setTimeout(()=>{
+
+    // Profitability donut
+    const tot=a.profitable_count+a.loss_count+(a.no_revenue_count||0);
+    mkChart('ch-dn','doughnut',{
+      labels:['Profitable','Loss-making','No Revenue'],
+      datasets:[{data:[a.profitable_count,a.loss_count,a.no_revenue_count||0],
+        backgroundColor:['#059669','#EF4444','#94A3B8'],borderColor:'#fff',borderWidth:3,hoverOffset:8}]
+    },{plugins:{
+      legend:{display:true,position:'bottom',labels:{padding:12,usePointStyle:true}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} (${tot?Math.round(c.parsed/tot*100):0}%)`}}
+    }});
+
+    // Revenue trend — separate avg and median clearly
+    const tr=(a.revenue_trend||[]).filter(e=>e.count>0);
+    if (tr.length) {
+      const anchRate=(y)=>cvt(1,y)===1?1:1/cvtRate(y); // scale factor
+      mkChart('ch-tr','bar',{
+        labels:tr.map(e=>e.year),
+        datasets:[
+          {label:`Avg Revenue (${cur})`,type:'bar',
+           data:tr.map(e=>e.avg_revenue!=null?Math.round(cvt(e.avg_revenue,e.year)):null),
+           backgroundColor:'#0096FFCC',borderRadius:3,order:2},
+          {label:`Median Revenue (${cur})`,type:'line',
+           data:tr.map(e=>e.median_revenue!=null?Math.round(cvt(e.median_revenue,e.year)):null),
+           borderColor:'#003791',backgroundColor:'transparent',
+           pointRadius:5,pointBackgroundColor:'#003791',tension:.3,order:1,borderWidth:2.5}
+        ]
+      },{
+        plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,padding:12,font:{size:11}}}},
+        scales:{
+          x:{grid:GRD,ticks:TCK,border:{display:false}},
+          y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}
+        }
+      });
+    }
+
+    // Top 10 revenue
+    const top=(a.top_by_revenue||[]).slice(0,10);
+    mkChart('ch-rb','bar',{
+      labels:top.map(r=>trunc(r.name,30)),
+      datasets:[{label:`Revenue (${cur})`,data:top.map(r=>Math.round(cvt(r.revenue,anchor))),
+        backgroundColor:PCOLS.slice(0,Math.min(top.length,PCOLS.length)),borderRadius:3}]
+    },{indexAxis:'y',
+      scales:{x:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}},
+              y:{grid:{...GRD,drawOnChartArea:false},ticks:{...TCK,font:{size:10}},border:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>fmtN(c.parsed.x)+' '+cur}}}});
+
+    // Sector
+    const sec=(a.sector_distribution||[]).slice(0,12);
+    mkChart('ch-sc','bar',{labels:sec.map(s=>trunc(s.label,32)),
+      datasets:[{data:sec.map(s=>s.count),backgroundColor:'#19AAFE',borderRadius:3}]
+    },{indexAxis:'y',scales:{x:{grid:GRD,ticks:TCK,border:{display:false}},y:{grid:{...GRD,drawOnChartArea:false},ticks:{...TCK,font:{size:9}},border:{display:false}}}});
+
+    // County
+    const cty=(a.county_distribution||[]).slice(0,12);
+    mkChart('ch-cy','bar',{labels:cty.map(c=>c.label),
+      datasets:[{data:cty.map(c=>c.count),backgroundColor:'#003791',borderRadius:3}]
+    },{indexAxis:'y',scales:{x:{grid:GRD,ticks:TCK,border:{display:false}},y:{grid:{...GRD,drawOnChartArea:false},ticks:{...TCK,font:{size:9}},border:{display:false}}}});
+
+    // Top profitable
+    const tp=(a.top_by_profit||[]).slice(0,10);
+    mkChart('ch-tp','bar',{labels:tp.map(r=>trunc(r.name,22)),
+      datasets:[{data:tp.map(r=>Math.round(cvt(r.net_result,anchor))),backgroundColor:'#059669',borderRadius:3}]
+    },{scales:{x:{grid:GRD,ticks:{...TCK,font:{size:10}},border:{display:false}},y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>fmtN(c.parsed.y)+' '+cur}}}});
+
+    // Biggest losses
+    const bl=(a.bottom_by_profit||[]).filter(r=>r.net_result<0).slice(0,10);
+    if (bl.length) mkChart('ch-bl','bar',{labels:bl.map(r=>trunc(r.name,22)),
+      datasets:[{data:bl.map(r=>Math.round(cvt(r.net_result,anchor))),backgroundColor:'#EF4444',borderRadius:3}]
+    },{scales:{x:{grid:GRD,ticks:{...TCK,font:{size:10}},border:{display:false}},y:{grid:GRD,ticks:{...TCK,callback:v=>fmtSh(v)},border:{display:false}}},
+      plugins:{tooltip:{callbacks:{label:c=>fmtN(c.parsed.y)+' '+cur}}}});
+
+  }, 150);
+}
+
+function changeAnchor(v) {
+  loadAnalytics(S.jobId, +v, S.analyticsData?._allYears);
+}
+
+// Bulk controls
+async function bPause(){await fetch(`/api/bulk/pause/${S.jobId}`,{method:'POST'});}
+async function bResume(){await fetch(`/api/bulk/resume/${S.jobId}`,{method:'POST'});}
+async function bCancel(){if(!confirm('Cancel?'))return;await fetch(`/api/bulk/cancel/${S.jobId}`,{method:'POST'});}
+async function bRetry(){
+  const r=await fetch(`/api/bulk/retry-failed/${S.jobId}`,{method:'POST'});
+  const d=await r.json();
+  if(d.retrying){document.getElementById('b-done').classList.add('hid');document.getElementById('b-prog').classList.remove('hid');toast(`Retrying ${d.retrying} failed`,'info');S.pollT=setInterval(pollBulk,1500);}
+  else toast('No failures to retry','info');
+}
+function resetBulk(){
+  clearInterval(S.pollT);
+  Object.keys(C).forEach(k=>{try{C[k].destroy();}catch(e){}delete C[k];});
+  S.jobId=null;S.analyticsData=null;bulkFile=null;
+  document.getElementById('b-setup').classList.remove('hid');
+  document.getElementById('b-prog').classList.add('hid');
+  document.getElementById('b-done').classList.add('hid');
+  document.getElementById('a-wrap').innerHTML='';
+  document.getElementById('dz-ttl').textContent='Click or drag CSV here';
+  document.getElementById('file-info').textContent='';
+  document.getElementById('start-btn').disabled=true;
+  document.getElementById('bfile').value='';
+}
+function dlXlsx()    { _doExport(false, 'xlsx'); }
+function dlXlsxEur() { _doExport(true,  'xlsx'); }
+function dlCsv()     { _doExport(false, 'csv');  }
+function dlCsvEur()  { _doExport(true,  'csv');  }
+
+async function _doExport(eur, fmt='xlsx') {
+  const isCsv  = fmt === 'csv';
+  const fnMap  = {xlsx: eur?'dlXlsxEur':'dlXlsx', csv: eur?'dlCsvEur':'dlCsv'};
+  const btn    = document.querySelector(`[onclick="${fnMap[fmt]}()"]`);
+  const orig   = btn ? btn.innerHTML : '';
+  const nNum   = parseInt(S.jobTotal || S.analyticsData?.total_companies || 0) || 0;
+  const est    = !isCsv && nNum > 10000 ? ` (~${Math.ceil(nNum/3000)}min)` : '';
+
+  if (btn) {
+    btn.disabled  = true;
+    btn.innerHTML = `<span class="spin" style="width:12px;height:12px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:5px"></span> ${nNum ? N(nNum)+' rows' : 'Building'}${est}…`;
+  }
+  try {
+    const endpoint = isCsv ? 'export-csv' : 'export';
+    const resp = await fetch(`/api/bulk/${endpoint}/${S.jobId}${eur ? '?eur=1' : ''}`);
+    if (!resp.ok) throw new Error((isCsv ? 'CSV' : 'Excel') + ' export failed');
+    const blob = await resp.blob();
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    const cd   = resp.headers.get('Content-Disposition') || '';
+    const fn   = cd.match(/filename=([^;]+)/)?.[1] || `anaf_export.${fmt}`;
+    a.download = fn.replace(/"/g, '');
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+}
+function dlErr(){window.location.href=`/api/bulk/error-log/${S.jobId}`;}
+
+// ═══ HTML helpers ════════════════════════════════════════════════════
+function di(label,val,extra=''){
+  if(val==null||val===''||val===false)return'';
+  let c;
+  if(extra===true)c=val;
+  else if(extra==='mono')c=`<span class="v mono">${esc(String(val))}</span>`;
+  else c=`<span class="v">${esc(String(val))}</span>`;
+  return `<div class="di"><label>${label}</label>${c}</div>`;
+}
+function kpi(label,val,sub='',cls=''){
+  return `<div class="kpi"><label>${label}</label>
+    <div class="kpi-v${cls?' '+cls:''}">${val!=null?val:'—'}</div>
+    ${sub?`<div class="kpi-sub">${sub}</div>`:''}
+  </div>`;
+}
+function kpiMoney(label,displayVal,year,rawVal,cls=''){
+  // For large numbers: short as primary, full as sub
+  const absRaw=Math.abs(rawVal||0);
+  let primary,sub='';
+  if (absRaw>=1e9) {
+    primary=fmtSh(displayVal!=null?displayVal:rawVal);
+    sub=`<div class="kpi-full">${displayVal!=null?fmtN(Math.round(displayVal)):''} ${curSfx()}</div>`;
+  } else {
+    primary=displayVal!=null?fmtN(Math.round(displayVal)):'—';
+    sub=`<div class="kpi-sub">${curSfx()}</div>`;
+  }
+  return `<div class="kpi"><label>${label}</label>
+    <div class="kpi-v${cls?' '+cls:''}">${primary}</div>
+    ${sub}
+  </div>`;
+}
+
+// ═══ Formatters ═══════════════════════════════════════════════════════
+// All numbers: en-US format (commas for thousands, dot for decimals)
+function fmtN(v,dec=0){
+  if(v==null||v==='')return'—';
+  return Number(v).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtRON(v,year){
+  // Format a monetary value in current currency
+  if(v==null)return'—';
+  const cv=cvt(v,year||2024);
+  return fmtN(Math.round(cv));
+}
+function N(v){if(v==null||v===0)return'0';return Math.round(v).toLocaleString('en-US');}
+function fmtPct(v){if(v==null)return'—';const s=v>=0?'+':'';return s+Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';}
+function fmtSh(v){
+  if(!v&&v!==0)return'0';const s=v<0?'-':'';const a=Math.abs(v);
+  if(a>=1e9)return s+(a/1e9).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:2})+'B';
+  if(a>=1e6)return s+(a/1e6).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+'M';
+  if(a>=1e3)return s+(a/1e3).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})+'K';
+  return s+a;
+}
+function fmtT(s){if(!s||s<0)return'—';if(s<60)return Math.round(s)+'s';return`${Math.floor(s/60)}m ${Math.round(s%60)}s`;}
+function fmtDate(s){if(!s)return'';try{const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});}catch{return s;}}
+function trunc(s,n){return s&&s.length>n?s.slice(0,n-1)+'…':s||'';}
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,type='info',ms=3600){
+  const w=document.getElementById('toast');
+  const el=document.createElement('div');el.className=`ti ti-${type}`;el.textContent=msg;
+  w.appendChild(el);setTimeout(()=>el.remove(),ms);
+}
+</script>
+<!-- ══ Export indicator selector modal ══════════════════════════════ -->
+<div id="export-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.4);width:580px;max-width:95vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
+    <!-- Header -->
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:10px">
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:15px">Export Configuration</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px" id="exp-subtitle"></div>
+      </div>
+      <button onclick="closeExportModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--t3);padding:4px">✕</button>
+    </div>
+
+    <!-- Currency + Format row -->
+    <div style="padding:10px 20px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11.5px;font-weight:700;color:var(--t2)">Currency</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px"><input type="radio" name="exp-cur" value="ron" checked> RON</label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px"><input type="radio" name="exp-cur" value="eur"> EUR</label>
+      </div>
+      <div style="width:1px;height:18px;background:var(--border2)"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11.5px;font-weight:700;color:var(--t2)">Format</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px"><input type="radio" name="exp-fmt" value="xlsx" checked> Excel</label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px"><input type="radio" name="exp-fmt" value="csv"> CSV <span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:100px;font-weight:600;margin-left:2px">fast</span></label>
+      </div>
+      <div style="width:1px;height:18px;background:var(--border2)"></div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+        <input type="checkbox" id="exp-onrc-chk" checked> Include ONRC columns
+      </label>
+    </div>
+
+    <!-- Year selector -->
+    <div style="padding:10px 20px 8px;border-bottom:1px solid var(--border2)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px">
+        Years to include
+        <button class="qk" style="margin-left:8px" onclick="expYrAll(true)">All</button>
+        <button class="qk" onclick="expYrAll(false)">None</button>
+      </div>
+      <div id="exp-yr-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+
+    <!-- Indicator groups -->
+    <div style="overflow-y:auto;padding:14px 20px;flex:1">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:8px">
+        Quick select:
+        <button class="qk" style="margin-left:6px" onclick="expPreset('default')">Default</button>
+        <button class="qk" onclick="expPreset('all')">All</button>
+        <button class="qk" onclick="expPreset('pl')">P&amp;L only</button>
+        <button class="qk" onclick="expPreset('bs')">Balance Sheet</button>
+        <button class="qk" onclick="expPreset('none')">None</button>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pri);margin:10px 0 6px">P&amp;L</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <label class="exp-chk" data-key="revenue"        data-group="pl"><input type="checkbox"> Revenue (I13)</label>
+        <label class="exp-chk" data-key="total_revenue"  data-group="pl"><input type="checkbox"> Total Revenue (I14)</label>
+        <label class="exp-chk" data-key="gross_result"   data-group="pl"><input type="checkbox"> Gross Result (I16–I17)</label>
+        <label class="exp-chk" data-key="net_result"     data-group="pl"><input type="checkbox"> Net Result (I18–I19)</label>
+        <label class="exp-chk" data-key="total_expenses" data-group="pl"><input type="checkbox"> Total Expenses (I15)</label>
+        <label class="exp-chk" data-key="margin_pct"     data-group="pl"><input type="checkbox"> Margin %</label>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pri);margin:12px 0 6px">Balance Sheet</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <label class="exp-chk" data-key="total_assets"   data-group="bs"><input type="checkbox"> Total Assets (I1+I2)</label>
+        <label class="exp-chk" data-key="fixed_assets"   data-group="bs"><input type="checkbox"> Fixed Assets (I1)</label>
+        <label class="exp-chk" data-key="current_assets" data-group="bs"><input type="checkbox"> Current Assets (I2)</label>
+        <label class="exp-chk" data-key="inventories"    data-group="bs"><input type="checkbox"> Inventories (I3)</label>
+        <label class="exp-chk" data-key="receivables"    data-group="bs"><input type="checkbox"> Receivables (I4)</label>
+        <label class="exp-chk" data-key="cash"           data-group="bs"><input type="checkbox"> Cash &amp; Bank (I5)</label>
+        <label class="exp-chk" data-key="equity"         data-group="bs"><input type="checkbox"> Equity (I10)</label>
+        <label class="exp-chk" data-key="paid_in_capital"data-group="bs"><input type="checkbox"> Paid-in Capital (I11)</label>
+        <label class="exp-chk" data-key="liabilities"    data-group="bs"><input type="checkbox"> Liabilities (I7)</label>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pri);margin:12px 0 6px">Other</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <label class="exp-chk" data-key="employees" data-group="other"><input type="checkbox"> Employees (I20)</label>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:14px 20px;border-top:1px solid var(--border2);display:flex;align-items:center;gap:10px">
+      <span style="font-size:11px;color:var(--t3)" id="exp-count-label"></span>
+      <div style="flex:1"></div>
+      <button class="btn bd bsm" onclick="closeExportModal()">Cancel</button>
+      <button class="btn bp" id="exp-go-btn" onclick="doExportWithSelection()">⬇ Export</button>
+    </div>
+  </div>
+</div>
+<script>
+// ═══ Export modal ══════════════════════════════════════════════════════
+const EXP_DEFAULT = ['revenue','gross_result','net_result','margin_pct','equity','liabilities','employees'];
+const EXP_ALL     = ['revenue','total_revenue','gross_result','net_result','total_expenses','margin_pct',
+                     'total_assets','fixed_assets','current_assets','inventories','receivables',
+                     'cash','equity','paid_in_capital','liabilities','employees'];
+const EXP_PL      = ['revenue','total_revenue','gross_result','net_result','total_expenses','margin_pct'];
+const EXP_BS      = ['total_assets','fixed_assets','current_assets','inventories','receivables',
+                     'cash','equity','paid_in_capital','liabilities'];
+
+let _expSelection = [...EXP_DEFAULT];
+
+function openExportModal() {
+  const nNum = parseInt(S.jobTotal || 0) || 0;
+  const yrs  = S.jobYears || [];
+  document.getElementById('exp-subtitle').textContent =
+    `${nNum ? N(nNum)+' companies' : ''} · ${yrs.length} year${yrs.length!==1?'s':''} available`;
+
+  // Build year chips
+  const chipsEl = document.getElementById('exp-yr-chips');
+  chipsEl.innerHTML = yrs.map(y =>
+    `<button class="yr on" data-y="${y}" onclick="this.classList.toggle('on');_updateExpCount()">${y}</button>`
+  ).join('');
+
+  _applySelectionToModal(_expSelection);
+  _updateExpCount();
+  document.getElementById('export-modal').style.display = 'flex';
+  document.addEventListener('keydown', _expKeyHandler);
+}
+
+function closeExportModal() {
+  document.getElementById('export-modal').style.display = 'none';
+  document.removeEventListener('keydown', _expKeyHandler);
+}
+
+function _expKeyHandler(e) { if (e.key === 'Escape') closeExportModal(); }
+
+function expYrAll(on) {
+  document.querySelectorAll('#exp-yr-chips .yr').forEach(b => b.classList.toggle('on', on));
+  _updateExpCount();
+}
+
+function _applySelectionToModal(keys) {
+  document.querySelectorAll('.exp-chk input').forEach(cb => {
+    cb.checked = keys.includes(cb.closest('.exp-chk').dataset.key);
+  });
+  _updateExpCount();
+}
+
+function _getModalSelection() {
+  return [...document.querySelectorAll('.exp-chk input:checked')]
+    .map(cb => cb.closest('.exp-chk').dataset.key);
+}
+
+function _getSelectedYears() {
+  return [...document.querySelectorAll('#exp-yr-chips .yr.on')]
+    .map(b => +b.dataset.y).sort((a,b)=>a-b);
+}
+
+function _updateExpCount() {
+  const sel  = _getModalSelection();
+  const yrs  = _getSelectedYears();
+  const total = sel.length * yrs.length;
+  document.getElementById('exp-count-label').textContent =
+    `${sel.length} indicator${sel.length!==1?'s':''} × ${yrs.length} year${yrs.length!==1?'s':''} = ${total} data columns`;
+  document.getElementById('exp-go-btn').disabled = sel.length === 0 || yrs.length === 0;
+}
+
+document.addEventListener('change', e => {
+  if (e.target.closest('.exp-chk')) _updateExpCount();
+});
+
+function expPreset(name) {
+  const map = { default: EXP_DEFAULT, all: EXP_ALL, pl: EXP_PL, bs: EXP_BS, none: [] };
+  _applySelectionToModal(map[name] || EXP_DEFAULT);
+}
+
+async function doExportWithSelection() {
+  const indicators = _getModalSelection();
+  const years      = _getSelectedYears();
+  if (!indicators.length) { toast('Select at least one indicator','err'); return; }
+  if (!years.length)      { toast('Select at least one year','err'); return; }
+
+  const eur      = document.querySelector('input[name="exp-cur"]:checked')?.value === 'eur';
+  const fmt      = document.querySelector('input[name="exp-fmt"]:checked')?.value || 'xlsx';
+  const inclOnrc = document.getElementById('exp-onrc-chk')?.checked !== false;
+  const isCsv    = fmt === 'csv';
+
+  _expSelection = indicators;  // remember for next time
+  closeExportModal();
+
+  const nNum  = parseInt(S.jobTotal || 0) || 0;
+  const est   = !isCsv && nNum > 10000 ? ` (~${Math.ceil(nNum/3000)}min)` : '';
+  const expBtn = document.getElementById('exp-trigger-btn');
+  const orig   = expBtn ? expBtn.innerHTML : '';
+  if (expBtn) {
+    expBtn.disabled = true;
+    expBtn.innerHTML = `<span class="spin" style="width:12px;height:12px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:5px"></span> ${nNum ? N(nNum)+' rows' : 'Building'}${est}…`;
+  }
+
+  try {
+    const body = JSON.stringify({
+      indicators, years, fmt,
+      currency: eur ? 'EUR' : 'RON',
+      include_onrc: inclOnrc,
+      require_year: S.require2025 ? 2025 : null,
+      anchor_override: S.anchor2025fallback ? 2024 : null,
+    });
+    const resp = await fetch(`/api/bulk/export-custom/${S.jobId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (!resp.ok) throw new Error('Export failed');
+    const blob = await resp.blob();
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    const cd   = resp.headers.get('Content-Disposition') || '';
+    const fn   = cd.match(/filename=([^;]+)/)?.[1] || `anaf_export.${fmt}`;
+    a.download = fn.replace(/"/g,'');
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    if (expBtn) { expBtn.disabled = false; expBtn.innerHTML = orig; }
+  }
+}
+</script>
+<!-- 2025 year-missing modals -->
+<div id="modal-2025" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.4);width:460px;max-width:95vw;padding:24px">
+    <div style="font-size:17px;font-weight:800;margin-bottom:8px">⚠ 2025 financials not available</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.6" id="modal-2025-msg"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn bp" id="modal-2025-primary" style="flex:1"></button>
+      <button class="btn bd bsm" id="modal-2025-secondary"></button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-2025-bulk" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.4);width:500px;max-width:95vw;padding:24px">
+    <div style="font-size:17px;font-weight:800;margin-bottom:8px">⚠ Some companies missing 2025 data</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:6px" id="modal-2025-bulk-msg"></div>
+    <div style="font-size:11.5px;color:var(--t3);margin-bottom:20px;font-family:var(--mono)" id="modal-2025-bulk-examples"></div>
+    <div style="display:flex;gap:10px;flex-direction:column">
+      <button class="btn bp" id="modal-2025-bulk-exclude" style="text-align:left;padding:12px 16px">
+        <div style="font-weight:700">A — Exclude companies without 2025 data</div>
+        <div style="font-size:11px;font-weight:400;opacity:.8;margin-top:3px">Analysis and export only include companies that filed 2025 financials</div>
+      </button>
+      <button class="btn bs" id="modal-2025-bulk-fallback" style="text-align:left;padding:12px 16px">
+        <div style="font-weight:700">B — Fall back to 2024 for all companies</div>
+        <div style="font-size:11px;font-weight:400;opacity:.8;margin-top:3px">Use 2024 as anchor year — all companies included, no 2025 column</div>
+      </button>
+      <button class="btn bd bsm" id="modal-2025-bulk-keep">Keep all anyway (include companies with no 2025 data)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 2025 missing-data modals
+function _show2025Modal(msg, primaryLabel, onPrimary, onSecondary) {
+  document.getElementById('modal-2025-msg').innerHTML = msg;
+  const pb = document.getElementById('modal-2025-primary');
+  const sb = document.getElementById('modal-2025-secondary');
+  pb.textContent = primaryLabel;
+  sb.textContent = 'Show anyway (no 2025 data)';
+  pb.onclick = () => { document.getElementById('modal-2025').style.display='none'; onPrimary(); };
+  sb.onclick = () => { document.getElementById('modal-2025').style.display='none'; onSecondary(); };
+  document.getElementById('modal-2025').style.display = 'flex';
+}
+
+function _show2025BulkModal(cov, st) {
+  const {missing, have_data, total, examples} = cov;
+  document.getElementById('modal-2025-bulk-msg').innerHTML =
+    '<strong>' + N(missing) + ' / ' + N(total) + '</strong> companies do not have 2025 financials yet in ANAF (' +
+    N(have_data) + ' do have data). How would you like to proceed?';
+  document.getElementById('modal-2025-bulk-examples').textContent =
+    examples && examples.length ? 'e.g. ' + examples.join(' · ') : '';
+  document.getElementById('modal-2025-bulk-exclude').onclick = () => {
+    document.getElementById('modal-2025-bulk').style.display='none';
+    S.require2025 = true; S.anchor2025fallback = false;
+    _renderDone(st);
+    toast('Analysis will include only companies with 2025 financials', 'info', 5000);
+  };
+  document.getElementById('modal-2025-bulk-fallback').onclick = () => {
+    document.getElementById('modal-2025-bulk').style.display='none';
+    S.require2025 = false; S.anchor2025fallback = true;
+    _renderDone(st);
+    toast('Anchor year set to 2024 — all companies included', 'info', 5000);
+  };
+  document.getElementById('modal-2025-bulk-keep').onclick = () => {
+    document.getElementById('modal-2025-bulk').style.display='none';
+    S.require2025 = false; S.anchor2025fallback = false;
+    _renderDone(st);
+  };
+  document.getElementById('modal-2025-bulk').style.display = 'flex';
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Name → CUI Matcher
+// ═══════════════════════════════════════════════════════════════════
+const M = {
+  file: null, jobId: null, poll: null,
+  results: [], summary: null,
+  altModalRowIndex: null,
+};
+
+function mDzDrag(e, on) { e.preventDefault(); document.getElementById('mdz').classList.toggle('drag', !!on); }
+function mDzDrop(e) {
+  e.preventDefault();
+  const f = e.dataTransfer?.files[0];
+  if (f) {
+    const dt = new DataTransfer(); dt.items.add(f);
+    document.getElementById('mfile').files = dt.files;
+    mFileChosen(document.getElementById('mfile'));
+  }
+  document.getElementById('mdz').classList.remove('drag');
+}
+function mFileChosen(inp) {
+  const f = inp.files[0];
+  if (!f) return;
+  M.file = f;
+  document.getElementById('mdz-ttl').textContent = f.name;
+  document.getElementById('m-file-info').textContent = `${(f.size/1024).toFixed(1)} KB`;
+  document.getElementById('m-start-btn').disabled = false;
+}
+
+async function mStart() {
+  if (!M.file) { toast('Choose a file first', 'err'); return; }
+  const btn = document.getElementById('m-start-btn');
+  btn.disabled = true; btn.textContent = '⟳ Uploading…';
+  try {
+    const fd = new FormData(); fd.append('file', M.file);
+    const r = await fetch('/api/match/start', { method: 'POST', body: fd });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Failed to start'); }
+    const d = await r.json();
+    M.jobId = d.job_id;
+    document.getElementById('m-upload').classList.add('hid');
+    document.getElementById('m-prog').classList.remove('hid');
+    document.getElementById('m-tot').textContent = '/ ' + N(d.total);
+    if (d.warnings && d.warnings.length) toast(d.warnings.join('; '), 'info', 5000);
+    M.poll = setInterval(mPollStatus, 800);
+    mPollStatus();
+  } catch (e) {
+    toast(e.message, 'err');
+    btn.disabled = false; btn.textContent = '▶ Start Matching';
+  }
+}
+
+async function mPollStatus() {
+  if (!M.jobId) return;
+  try {
+    const r = await fetch(`/api/match/status/${M.jobId}`);
+    const st = await r.json();
+    const pct = st.total > 0 ? Math.round(st.processed / st.total * 100) : 0;
+    document.getElementById('m-done').textContent = N(st.processed);
+    document.getElementById('m-pct').textContent = pct + '%';
+    document.getElementById('m-bar').style.width = pct + '%';
+    document.getElementById('m-msg').textContent = st.message || '';
+
+    if (st.status === 'done') {
+      clearInterval(M.poll); M.poll = null;
+      await mLoadResults();
+    } else if (st.status === 'error') {
+      clearInterval(M.poll); M.poll = null;
+      toast('Matching failed: ' + (st.error || 'unknown error'), 'err');
+      mReset();
+    } else if (st.status === 'cancelled') {
+      clearInterval(M.poll); M.poll = null;
+      toast('Matching cancelled', 'info');
+      mReset();
+    }
+  } catch (e) { console.warn('match poll:', e); }
+}
+
+async function mLoadResults() {
+  const r = await fetch(`/api/match/results/${M.jobId}`);
+  const d = await r.json();
+  M.results = d.results;
+  M.summary = d.summary;
+  document.getElementById('m-prog').classList.add('hid');
+  document.getElementById('m-review').classList.remove('hid');
+  mRenderSummary();
+  mRenderTable();
+}
+
+function mRenderSummary() {
+  const s = M.summary;
+  const matched = (s.auto||0) + (s.approved||0) + (s.manual||0);
+  const noMatch = (s.rejected||0) + (s.no_match||0);
+  const kpis = [
+    { label: 'Auto-matched (≥97%)', value: s.auto||0, color: '#6EE7B7' },
+    { label: 'Needs Review', value: s.pending||0, color: '#FCD34D' },
+    { label: 'Total Matched', value: matched, color: '#93C5FD' },
+    { label: 'No Match / Rejected', value: noMatch, color: '#FCA5A5' },
+  ];
+  document.getElementById('m-summary-kpi').innerHTML = kpis.map(k => `
+    <div>
+      <div style="font-size:26px;font-weight:800;color:${k.color}">${N(k.value)}</div>
+      <div style="font-size:11px;opacity:.8;margin-top:2px">${k.label}</div>
+    </div>`).join('');
+  document.getElementById('m-to-bulk-btn').textContent =
+    `📊 Send ${N(matched)} Matched Companies to Bulk Analysis →`;
+}
+
+const M_STATUS_LABELS = {
+  auto: '✓ Auto-matched', approved: '✓ Approved', manual: '✓ Manual',
+  pending: '⚠ Pending', rejected: '✖ Rejected', no_match: '— No match',
+};
+const M_STATUS_CLASS = {
+  auto: 'l-ok', approved: 'l-ok', manual: 'l-info',
+  pending: 'l-warn', rejected: 'l-err', no_match: 'l-neu',
+};
+
+function mRenderTable() {
+  const pendingOnly = document.getElementById('m-filter-pending-only').checked;
+  const rows = pendingOnly ? M.results.filter(r => r.status === 'pending') : M.results;
+  document.getElementById('m-table-count').textContent = `${N(rows.length)} rows`;
+
+  const tbody = document.getElementById('m-tbody');
+  const emptyEl = document.getElementById('m-empty-state');
+  const table = document.getElementById('m-table');
+
+  if (!rows.length) {
+    table.classList.add('hid'); emptyEl.classList.remove('hid');
+    return;
+  }
+  table.classList.remove('hid'); emptyEl.classList.add('hid');
+
+  // Cap rendering for very large lists — render first 1000, note the rest
+  const MAX_RENDER = 1000;
+  const shown = rows.slice(0, MAX_RENDER);
+
+  tbody.innerHTML = shown.map(r => {
+    const scoreColor = r.score >= 97 ? 'var(--ok)' : r.score >= 70 ? '#B45309' : 'var(--t4)';
+    const canAct = r.status === 'pending';
+    return `
+    <tr style="border-bottom:1px solid var(--border2)" data-row="${r.row_index}">
+      <td style="padding:7px 6px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.input_name)}">${esc(r.input_name)}</td>
+      <td style="padding:7px 6px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)" title="${esc(r.matched_name||'')}">${esc(r.matched_name||'—')}</td>
+      <td style="padding:7px 6px;font-family:var(--mono);font-size:11.5px">${r.cui||'—'}</td>
+      <td style="padding:7px 6px;text-align:center;font-weight:700;color:${scoreColor}">${r.score?r.score.toFixed(1)+'%':'—'}</td>
+      <td style="padding:7px 6px;text-align:center"><span class="b ${M_STATUS_CLASS[r.status]||'l-neu'}" style="font-size:10px">${M_STATUS_LABELS[r.status]||r.status}</span></td>
+      <td style="padding:7px 6px;text-align:center;white-space:nowrap">
+        ${canAct ? `
+          <button class="btn bg" style="padding:3px 8px;font-size:11px" onclick="mApprove(${r.row_index})" title="Approve top match">✓</button>
+          <button class="btn bd" style="padding:3px 8px;font-size:11px" onclick="mOpenAltModal(${r.row_index})" title="Choose alternative">⇄</button>
+          <button class="btn bd" style="padding:3px 8px;font-size:11px" onclick="mReject(${r.row_index})" title="Reject">✖</button>
+        ` : `<button class="btn bd" style="padding:3px 8px;font-size:11px" onclick="mResetRow(${r.row_index})" title="Reset to pending">↺</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (rows.length > MAX_RENDER) {
+    tbody.innerHTML += `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--t3);font-size:11px">
+      Showing first ${N(MAX_RENDER)} of ${N(rows.length)} rows — narrow the filter or export to see all
+    </td></tr>`;
+  }
+}
+
+function mFindResult(rowIndex) { return M.results.find(r => r.row_index === rowIndex); }
+
+async function mDecide(action, rowIndex, extra = {}) {
+  const body = { job_id: M.jobId, action, row_index: rowIndex, ...extra };
+  const r = await fetch('/api/match/decide', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  if (!r.ok) { toast('Action failed', 'err'); return null; }
+  return await r.json();
+}
+
+async function mApprove(rowIndex) {
+  const res = await mDecide('approve', rowIndex);
+  if (res) {
+    const r = mFindResult(rowIndex); if (r) r.status = 'approved';
+    mRefreshAfterDecision();
+  }
+}
+async function mReject(rowIndex) {
+  const res = await mDecide('reject', rowIndex);
+  if (res) {
+    const r = mFindResult(rowIndex); if (r) { r.status = 'rejected'; r.cui = null; }
+    mRefreshAfterDecision();
+  }
+}
+async function mResetRow(rowIndex) {
+  const res = await mDecide('reset', rowIndex);
+  if (res) {
+    const r = mFindResult(rowIndex); if (r) r.status = res.status;
+    mRefreshAfterDecision();
+  }
+}
+
+function mRefreshAfterDecision() {
+  // Recompute summary client-side (avoids extra round-trip)
+  const s = { auto:0, pending:0, no_match:0, approved:0, rejected:0, manual:0 };
+  M.results.forEach(r => { s[r.status] = (s[r.status]||0) + 1; });
+  M.summary = s;
+  mRenderSummary();
+  mRenderTable();
+}
+
+async function mBulkAction(action, threshold) {
+  const res = await mDecide(action, null, { row_index: null, threshold });
+  if (res) {
+    toast(`${res.affected} row(s) updated`, 'ok');
+    await mLoadResults();
+  }
+}
+
+// ── Alternatives modal ──────────────────────────────────────────────
+function mOpenAltModal(rowIndex) {
+  const r = mFindResult(rowIndex);
+  if (!r) return;
+  M.altModalRowIndex = rowIndex;
+  document.getElementById('m-alt-input-name').textContent = r.input_name;
+  const list = r.alternatives && r.alternatives.length ? r.alternatives : [];
+  document.getElementById('m-alt-list').innerHTML = list.map(a => `
+    <button class="btn bd" style="text-align:left;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;width:100%"
+      onclick="mSelectAlt(${a.cui})">
+      <div>
+        <div style="font-weight:600;font-size:12.5px">${esc(a.denumire)}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">CUI ${a.cui} ${a.judet?'· '+esc(a.judet):''} ${a.forma_juridica?'· '+esc(a.forma_juridica):''}</div>
+      </div>
+      <div style="font-weight:800;font-size:14px;color:${a.score>=97?'var(--ok)':a.score>=70?'#B45309':'var(--t4)'}">${a.score.toFixed(1)}%</div>
+    </button>
+  `).join('') || `<div style="color:var(--t3);font-size:12px;text-align:center;padding:20px">No alternatives found</div>`;
+  document.getElementById('m-alt-modal').style.display = 'flex';
+}
+function mCloseAltModal() {
+  document.getElementById('m-alt-modal').style.display = 'none';
+  M.altModalRowIndex = null;
+}
+async function mSelectAlt(cui) {
+  const rowIndex = M.altModalRowIndex;
+  if (rowIndex === null) return;
+  const res = await mDecide('select', rowIndex, { selected_cui: cui });
+  mCloseAltModal();
+  if (res) {
+    // Refresh this row's data from server response is minimal — refetch full to get updated fields
+    await mLoadResults();
+    toast('Match updated', 'ok');
+  }
+}
+function mRejectFromModal() {
+  const rowIndex = M.altModalRowIndex;
+  mCloseAltModal();
+  if (rowIndex !== null) mReject(rowIndex);
+}
+
+// ── Export & Send to Bulk ───────────────────────────────────────────
+async function mExport() {
+  if (!M.jobId) return;
+  window.location.href = `/api/match/export/${M.jobId}`;
+}
+
+async function mSendToBulk() {
+  if (!M.jobId) return;
+  try {
+    const r = await fetch(`/api/match/to-bulk/${M.jobId}`);
+    const d = await r.json();
+    if (!d.count) { toast('No matched companies to send', 'err'); return; }
+
+    // Build a synthetic CSV and feed it into the Bulk tab's file input
+    const csvContent = 'cui\n' + d.cuis.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const file = new File([blob], `matched_${M.jobId}.csv`, { type: 'text/csv' });
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('bfile').files = dt.files;
+    fileChosen(document.getElementById('bfile'));
+
+    setTab('b');
+    toast(`${N(d.count)} CUIs loaded into Bulk Analysis — select years and start`, 'ok', 6000);
+  } catch (e) {
+    toast('Failed to send to Bulk: ' + e.message, 'err');
+  }
+}
+
+function mReset() {
+  M.file = null; M.jobId = null; M.results = []; M.summary = null;
+  if (M.poll) { clearInterval(M.poll); M.poll = null; }
+  document.getElementById('m-upload').classList.remove('hid');
+  document.getElementById('m-prog').classList.add('hid');
+  document.getElementById('m-review').classList.add('hid');
+  document.getElementById('mdz-ttl').textContent = 'Click or drag Excel/CSV here';
+  document.getElementById('m-file-info').textContent = '';
+  document.getElementById('m-start-btn').disabled = true;
+  document.getElementById('mfile').value = '';
+}
+</script>
+
+</body>
+</html>
