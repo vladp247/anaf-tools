@@ -116,7 +116,20 @@ def get_onrc_resources(client: httpx.Client, dataset_name: str) -> dict[str, dic
 
 
 def get_caen_resources(client: httpx.Client, year: int) -> dict[str, dict]:
-    pkg = _ckan_get(client, "package_show", id=f"situatii_financiare_{year}")
+    # data.gov.ro's dataset slugs aren't perfectly consistent year to year —
+    # 2023's is "situatii_financiare2023" (no underscore) while every other
+    # year is "situatii_financiare_{year}". Try both.
+    pkg = None
+    last_err: Exception | None = None
+    for slug in (f"situatii_financiare_{year}", f"situatii_financiare{year}"):
+        try:
+            pkg = _ckan_get(client, "package_show", id=slug)
+            break
+        except Exception as ex:
+            last_err = ex
+    if pkg is None:
+        raise RuntimeError(f"No situatii_financiare dataset found for {year}: {last_err}")
+
     wanted = {
         key: template.format(year=year)
         for key, template, desc, pri in Config.CAEN_FILE_DEFS
@@ -126,9 +139,15 @@ def get_caen_resources(client: httpx.Client, year: int) -> dict[str, dict]:
     for res in pkg.get("resources", []):
         if (res.get("format") or "").upper() != "TXT":
             continue
-        name_lower = res["name"].lower()
+        name_lower = res["name"].strip().lower()
         for key, filename in wanted.items():
-            if name_lower == filename.lower():
+            if key in found:
+                continue
+            fn_lower = filename.lower()
+            # Some years drop the "_an" infix (e.g. 2024's WEB_IR_2024.txt
+            # instead of WEB_IR_AN2024.txt) — accept that variant too.
+            fn_alt = fn_lower.replace("_an", "_", 1)
+            if name_lower in (fn_lower, fn_alt):
                 found[f"{key}_{year}"] = {
                     "label": filename,
                     "url": res["url"],
