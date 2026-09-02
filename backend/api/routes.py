@@ -54,7 +54,13 @@ async def shutdown():
 async def root():
     if not FRONTEND.exists():
         raise HTTPException(500, "Frontend not found")
-    return HTMLResponse(FRONTEND.read_text(encoding="utf-8"))
+    # index.html is a single evolving file with no cache-busting filename/hash —
+    # without this header, browsers can silently serve a stale cached copy after
+    # `git pull`, making a fix look like it didn't take until a hard refresh.
+    return HTMLResponse(
+        FRONTEND.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-store, must-revalidate"},
+    )
 
 
 # ── Setup / first-run ─────────────────────────────────────────────────────────
