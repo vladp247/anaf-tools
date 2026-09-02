@@ -37,16 +37,19 @@ code{font-family:var(--mono);background:var(--pale);color:var(--dark);padding:2p
 .setup-box{
   background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,100,.2);
   width:100%;max-width:660px;overflow:hidden;
+  max-height:90vh;display:flex;flex-direction:column;
 }
 .setup-hdr{
-  padding:28px 32px 20px;
+  padding:28px 32px 20px;flex-shrink:0;
   background:linear-gradient(135deg,#000082 0%,#003791 55%,#0096FF 100%);
   color:#fff;position:relative;overflow:hidden;
 }
 .setup-hdr::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none}
+.setup-hdr-close{position:absolute;top:16px;right:18px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:15px;cursor:pointer;z-index:1;transition:background .15s}
+.setup-hdr-close:hover{background:rgba(255,255,255,.3)}
 .setup-logo{font-family:var(--head);font-size:22px;font-weight:800;margin-bottom:4px}
 .setup-sub{font-size:13px;color:var(--pale);opacity:.9}
-.setup-page{padding:26px 32px 28px}
+.setup-page{padding:26px 32px 28px;overflow-y:auto;flex:1 1 auto;min-height:0}
 .setup-age-bar{
   border-radius:var(--r);padding:14px 18px;margin-bottom:20px;
   display:flex;align-items:center;gap:12px;border:1.5px solid;
@@ -64,7 +67,7 @@ code{font-family:var(--mono);background:var(--pale);color:var(--dark);padding:2p
 .fname2{font-family:var(--mono);font-size:12px;font-weight:600;flex:1;color:var(--text)}
 .fpath2{font-size:11px;color:var(--t4)}
 .setup-dlnote{font-size:12px;color:var(--t3);margin-bottom:20px}
-.setup-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-top:1px solid var(--border);background:var(--surface2)}
+.setup-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-top:1px solid var(--border);background:var(--surface2);position:sticky;bottom:-28px;margin:20px -32px -28px}
 /* Page 2 */
 .idx-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
 .ic-col{border-radius:var(--r-sm);padding:16px;border:1.5px solid}
@@ -322,6 +325,7 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
 <div id="setup-overlay" class="hid">
   <div class="setup-box">
     <div class="setup-hdr">
+      <button class="setup-hdr-close" onclick="dismissSetup()" title="Close — use online mode only">✕</button>
       <div class="setup-logo">📊 ANAF Intelligence</div>
       <div class="setup-sub" id="setup-hdr-sub">Platform Setup</div>
     </div>
@@ -330,6 +334,13 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
       <div id="sp-age-bar" class="setup-age-bar age-unk">
         <div class="age-ico" id="sp-age-ico">📦</div>
         <div class="age-txt"><h3 id="sp-age-h"></h3><p id="sp-age-p"></p></div>
+      </div>
+
+      <div style="font-size:12.5px;color:var(--t3);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:14px">
+        <strong style="color:var(--text)">You can skip this entirely and use the app right away.</strong>
+        Without downloading anything, <strong>🔍 Company Check</strong> and <strong>📊 Bulk Analysis</strong> work immediately via live ANAF lookups (online mode) — full financial data 2014–2025, CAGR, charts, Excel export.
+        What you'd be missing: name search, company status (stare firmă), legal representatives, and full registry details (needs ONRC below) — and <strong>🏭 CAEN Analytics</strong> won't work at all, since it runs entirely on the offline financial files (needs the ANAF files below).
+        You can always come back and download later from the ⚡ chip in the header or the CAEN Analytics tab.
       </div>
 
       <div style="margin:14px 0;padding:14px;background:var(--surface2);border:1.5px solid var(--pri);border-radius:var(--r-sm)">
@@ -365,7 +376,7 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
       </div>
 
       <div class="setup-nav">
-        <button class="btn bg bsm" onclick="dismissSetup()">Skip →</button>
+        <button class="btn bg bsm" onclick="dismissSetup()">Skip — use online mode only</button>
         <button class="btn bp" onclick="goSp2()">Continue →</button>
       </div>
     </div>
