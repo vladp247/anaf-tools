@@ -18,6 +18,21 @@ log = get_logger(__name__)
 
 CAEN_YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
+
+def _resolve_caen_path(expected: Path) -> Path:
+    """Case-insensitive fallback for CAEN txt files. ANAF's data.gov.ro
+    downloads come named e.g. WEB_UU_AN2025.txt (uppercase); our templates
+    are lowercase. Mirrors onrc_service._resolve_path's case-insensitive pass."""
+    if expected.exists():
+        return expected
+    if not expected.parent.exists():
+        return expected
+    target = expected.name.lower()
+    for f in expected.parent.iterdir():
+        if f.name.lower() == target:
+            return f
+    return expected
+
 SIZE_BUCKETS = [
     ("Micro",  0,          900_000),
     ("Small",  900_000,    8_800_000),
@@ -185,7 +200,7 @@ class CAENService:
         for year in CAEN_YEARS:
             yr: dict[str, Any] = {}
             for key, template, desc, pri in Config.CAEN_FILE_DEFS:
-                path = Config.DATA_DIR / template.format(year=year)
+                path = _resolve_caen_path(Config.DATA_DIR / template.format(year=year))
                 km   = Config.CAEN_KNOWN_MISSING.get((key, year))
                 yr[key] = {"present": path.exists(), "desc": desc,
                            "known_missing": km, "filename": template.format(year=year)}
@@ -196,7 +211,7 @@ class CAENService:
         avail = []
         for year in CAEN_YEARS:
             for key, template, *_ in Config.CAEN_FILE_DEFS:
-                if (Config.DATA_DIR / template.format(year=year)).exists():
+                if _resolve_caen_path(Config.DATA_DIR / template.format(year=year)).exists():
                     avail.append(year); break
         return avail
 
@@ -268,10 +283,10 @@ class CAENService:
         conn.commit()
 
         file_jobs = sorted([
-            (year, key, Config.DATA_DIR / template.format(year=year), pri)
+            (year, key, _resolve_caen_path(Config.DATA_DIR / template.format(year=year)), pri)
             for year in CAEN_YEARS
             for key, template, desc, pri in Config.CAEN_FILE_DEFS
-            if (Config.DATA_DIR / template.format(year=year)).exists()
+            if _resolve_caen_path(Config.DATA_DIR / template.format(year=year)).exists()
             and not Config.CAEN_KNOWN_MISSING.get((key, year))
         ], key=lambda x: x[3])
 

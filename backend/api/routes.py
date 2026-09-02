@@ -20,6 +20,7 @@ from backend.validators.validators import validate_cui, validate_years, validate
 from backend.jobs.job_manager import get_job_manager
 from backend.services.onrc_service import get_onrc, get_index_state
 from backend.services.caen_service import get_caen, get_index_state as caen_index_state
+from backend.services.data_downloader import start_download, get_download_state
 from backend.services.name_matcher import (
     get_match_manager, run_match_job, normalize_name,
     AUTO_THRESHOLD, REVIEW_THRESHOLD,
@@ -103,6 +104,26 @@ async def setup_complete():
     Config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     Config.SETUP_DONE_PATH.write_text("done")
     return {"ok": True}
+
+
+# ── Data download (data.gov.ro) ─────────────────────────────────────────────
+
+class DownloadReq(BaseModel):
+    years: list[int] = []
+    include_onrc: bool = True
+
+
+@app.post("/api/download/start")
+async def download_start(req: DownloadReq):
+    if not req.years and not req.include_onrc:
+        raise HTTPException(400, "Nothing selected to download")
+    started = start_download(req.years, req.include_onrc)
+    return {"started": started, "message": "Download started" if started else "Already downloading"}
+
+
+@app.get("/api/download/status")
+async def download_status():
+    return JSONResponse(get_download_state())
 
 
 # ── EUR rates ─────────────────────────────────────────────────────────────────

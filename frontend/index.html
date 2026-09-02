@@ -331,12 +331,39 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
         <div class="age-ico" id="sp-age-ico">📦</div>
         <div class="age-txt"><h3 id="sp-age-h"></h3><p id="sp-age-p"></p></div>
       </div>
+
+      <div style="margin:14px 0;padding:14px;background:var(--surface2);border:1.5px solid var(--pri);border-radius:var(--r-sm)">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">⚡ Download automatically</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Pulls files directly from data.gov.ro's public API — no manual browsing. Corporate networks can block this; the manual steps below always work as a fallback.</div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:10px;cursor:pointer">
+          <input type="checkbox" id="dl-onrc" checked> ONRC registry files (~1.1 GB, latest snapshot)
+        </label>
+        <div style="font-size:11.5px;color:var(--t3);margin-bottom:6px">Financial statement years to fetch:</div>
+        <div class="yr-chips" id="dl-caen-yrs" style="margin-bottom:12px"></div>
+        <button class="btn bp bsm" id="dl-start-btn" onclick="startAutoDownload()">⬇ Download Selected Files</button>
+        <div id="dl-progress" class="hid" style="margin-top:12px"></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.03em;margin:14px 0 6px">Or manually — 1. ONRC registry files</div>
       <div class="flist" id="sp-flist"></div>
       <div class="setup-dlnote">
-        Download the latest CSV files from
-        <a href="https://data.gov.ro/organization/onrc" target="_blank" rel="noopener">data.gov.ro/organization/onrc</a>
-        and place them as shown above.
+        Go to <a href="https://data.gov.ro/organization/onrc" target="_blank" rel="noopener">data.gov.ro/organization/onrc</a>
+        and open the newest <strong>"Firme"</strong> dataset (currently
+        <a href="https://data.gov.ro/dataset/firme-08-07-2026" target="_blank" rel="noopener">firme-08-07-2026</a>
+        — a new dated snapshot is published periodically, so pick whichever is newest). Download only these 4 files into <code>data/</code>:
+        <strong>OD_FIRME.CSV</strong>, <strong>OD_STARE_FIRMA.CSV</strong>, <strong>OD_REPREZENTANTI_LEGALI.CSV</strong>, <strong>OD_REPREZENTANTI_IF.CSV</strong>
+        — skip <code>OD_CAEN_AUTORIZAT.CSV</code> and <code>OD_SUCURSALE_ALTE_STATE_MEMBRE.CSV</code>, they're not used. File names are matched case-insensitively.
       </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.03em;margin:18px 0 6px">Or manually — 2. ANAF financial statements (CAEN)</div>
+      <div class="flist" id="sp-flist-caen"></div>
+      <div class="setup-dlnote">
+        Go to <a href="https://data.gov.ro/dataset/situatii_financiare_2025" target="_blank" rel="noopener">data.gov.ro/dataset/situatii_financiare_2025</a>
+        and download <strong>WEB_UU_AN2025.txt</strong>, <strong>WEB_BL_BS_SL_AN2025.txt</strong> and <strong>WEB_IR_AN2025.txt</strong> into <code>data/</code>.
+        Swap the <code>2025</code> in the URL for any other year (e.g. <code>situatii_financiare_2024</code>) to get that year's files with the same 3 names, just a different year —
+        grab as many years as you want sector history/CAGR for. This step can be finished later from the <strong>🏭 CAEN Analytics</strong> tab, which shows per-year coverage and lets you re-index anytime.
+      </div>
+
       <div class="setup-nav">
         <button class="btn bg bsm" onclick="dismissSetup()">Skip →</button>
         <button class="btn bp" onclick="goSp2()">Continue →</button>
@@ -371,7 +398,7 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
       <div class="setup-nav">
         <button class="btn bg bsm" onclick="goSp1()">← Back</button>
         <div style="display:flex;gap:8px">
-          <button class="btn bg bsm" onclick="dismissSetup()">Use without index</button>
+          <button class="btn bg bsm" id="sp-skip-btn" onclick="dismissSetup()">Use without index</button>
           <button class="btn bp" id="sp-idx-btn" onclick="spStartIdx()">▶ Build Index Now</button>
         </div>
       </div>
@@ -691,7 +718,7 @@ table.fin{min-width:460px;width:100%;border-collapse:collapse;font-size:12.5px}
       <div id="csb-note" style="font-size:12.5px;color:var(--t3);margin-bottom:12px"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn bp bsm" id="caen-idx-btn" onclick="startCaenIdx()">▶ Build CAEN Index</button>
-        <a href="https://data.gov.ro/organization/mfinante" target="_blank" rel="noopener" class="btn bg bsm">⬇ Download files →</a>
+        <a href="https://data.gov.ro/dataset/situatii_financiare_2025" target="_blank" rel="noopener" class="btn bg bsm">⬇ Download files →</a>
       </div>
       <div id="caen-idx-prog" class="hid" style="margin-top:14px">
         <div class="idx-bar"><div class="idx-fill" id="caen-idx-fill" style="width:0%"></div></div>
@@ -1017,7 +1044,7 @@ function renderCaenSetup() {
     banner.classList.remove('hid');
   } else {
     title.textContent = '📁 CAEN Data Files Missing';
-    note.innerHTML    = `Download UU and BL/BS files from <a href="https://data.gov.ro/organization/mfinante" target="_blank">data.gov.ro/organization/mfinante</a>.`;
+    note.innerHTML    = `Download WEB_UU_AN, WEB_BL_BS_SL_AN and WEB_IR_AN files from <a href="https://data.gov.ro/dataset/situatii_financiare_2025" target="_blank">data.gov.ro/dataset/situatii_financiare_2025</a> (swap the year in the URL for other years).`;
     idxBtn.disabled   = true;
     prog.classList.add('hid');
     banner.classList.remove('hid');
@@ -1795,6 +1822,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildYrChips('c',[2023,2024,2025]); buildYrChips('b',[2023,2024,2025]);
   // Build CAEN year selects immediately with known defaults — don't wait for API
   buildCaenYrSelects(CAEN_YEARS_AVAIL, false);
+  buildDlYrChips();
   loadSetup();
   fetch('/api/caen/status').then(r=>r.json()).then(d=>{ window._caenIndexed=!!d.indexed; }).catch(()=>{});
   document.addEventListener('click', e => { if(!e.target.closest('.ac-wrap')) hideAc(); });
@@ -1808,12 +1836,25 @@ async function loadSetup() {
     S.onrc = d;
     renderChip();
     renderBanner();
-    if (d.first_run || d.csv_stale) showSetup(d);
+    if (d.first_run || d.csv_stale) {
+      let caen = null;
+      try { caen = await (await fetch('/api/caen/status')).json(); } catch(e) {}
+      showSetup(d, caen);
+      try {
+        const dl = await (await fetch('/api/download/status')).json();
+        if (dl.status === 'downloading') {
+          document.getElementById('dl-progress').classList.remove('hid');
+          document.getElementById('dl-start-btn').disabled = true;
+          document.getElementById('dl-start-btn').textContent = '⟳ Downloading…';
+          pollDownload();
+        }
+      } catch(e) {}
+    }
     if (d.index_state?.status === 'indexing') pollIdx();
   } catch(e) { console.warn('Setup error', e); }
 }
 
-function showSetup(d) {
+function showSetup(d, caen) {
   // Age bar
   const bar = document.getElementById('sp-age-bar');
   const ico = document.getElementById('sp-age-ico');
@@ -1841,7 +1882,8 @@ function showSetup(d) {
     {k:'firme',      name:'OD_FIRME.csv',                 path:'data/', dsc:'Company registry'},
     {k:'stare',      name:'OD_STARE_FIRMA.csv',            path:'data/', dsc:'Company status codes'},
     {k:'reps',       name:'OD_REPREZENTANTI_LEGALI.csv',   path:'data/', dsc:'Legal representatives'},
-    {k:'nomenclator',name:'nomenclator.csv',               path:'root',  dsc:'Status descriptions'},
+    {k:'reps_if',    name:'OD_REPREZENTANTI_IF.csv',       path:'data/', dsc:'Family enterprise reps'},
+    {k:'nomenclator',name:'nomenclator.csv',               path:'root',  dsc:'Status descriptions (bundled in repo)'},
   ];
   document.getElementById('sp-flist').innerHTML = defs.map(f => {
     const ok = files[f.k];
@@ -1852,17 +1894,52 @@ function showSetup(d) {
       <span style="font-size:11px;color:var(--t4)">${f.dsc}</span>
     </div>`;
   }).join('');
+  // CAEN file list — show the latest supported year's 3 files
+  const cf = document.getElementById('sp-flist-caen');
+  if (cf) {
+    const detail = caen?.files_detail || {};
+    const years = Object.keys(detail).map(Number).sort((a,b)=>b-a);
+    const latest = years[0];
+    const yr = latest ? detail[latest] : null;
+    const caenDefs = [
+      {k:'uu',    dsc:'Micro/small companies'},
+      {k:'bl_bs', dsc:'Medium/large companies'},
+      {k:'ir',    dsc:'IFRS filers'},
+    ];
+    cf.innerHTML = caenDefs.map(f => {
+      const info = yr?.[f.k];
+      const ok = !!info?.present;
+      const name = info?.filename || `web_${f.k}_an${latest||2025}.txt`;
+      return `<div class="frow2">
+        <div class="fstat2 ${ok?'fok2':'fmiss2'}">${ok?'✓':'✗'}</div>
+        <span class="fname2">${name}</span>
+        <span class="fpath2">data/</span>
+        <span style="font-size:11px;color:var(--t4)">${f.dsc}</span>
+      </div>`;
+    }).join('');
+  }
   // Page 2 status
   const sp2s = document.getElementById('sp2-status');
+  const idxBtn = document.getElementById('sp-idx-btn');
+  const skipBtn = document.getElementById('sp-skip-btn');
   if (d.indexed) {
     sp2s.innerHTML = `<span style="color:var(--ok);font-weight:700">✓ Index already built — ${N(d.stats?.companies||0)} companies ready</span>`;
-    document.getElementById('sp-idx-btn').textContent = '✓ Already indexed';
-    document.getElementById('sp-idx-btn').disabled = true;
+    idxBtn.textContent = '✓ Continue';
+    idxBtn.disabled = false;
+    idxBtn.onclick = dismissSetup;
+    skipBtn.classList.add('hid');
   } else if (!files.all_csv) {
     sp2s.textContent = 'Place the CSV files in the data/ folder first, then build the index.';
-    document.getElementById('sp-idx-btn').disabled = true;
+    idxBtn.textContent = '▶ Build Index Now';
+    idxBtn.disabled = true;
+    idxBtn.onclick = spStartIdx;
+    skipBtn.classList.remove('hid');
   } else {
     sp2s.textContent = 'All CSV files detected. Ready to build index (takes a few minutes, app remains usable).';
+    idxBtn.textContent = '▶ Build Index Now';
+    idxBtn.disabled = false;
+    idxBtn.onclick = spStartIdx;
+    skipBtn.classList.remove('hid');
   }
   document.getElementById('setup-hdr-sub').textContent =
     d.csv_stale ? 'Data Update Available' : 'First Run Setup';
@@ -1893,6 +1970,78 @@ async function spStartIdx() {
   } else {
     toast('Indexing already in progress', 'info');
   }
+}
+
+// ═══ Auto-Download (data.gov.ro) ═══════════════════════════════════
+function buildDlYrChips() {
+  const wrap = document.getElementById('dl-caen-yrs');
+  if (!wrap) return;
+  wrap.innerHTML = CAEN_YEARS_AVAIL.map(y =>
+    `<button class="yr on" data-y="${y}" onclick="this.classList.toggle('on')">${y}</button>`
+  ).join('');
+}
+function getDlYrs() {
+  return [...document.querySelectorAll('#dl-caen-yrs .yr.on')].map(b => +b.dataset.y).sort((a,b)=>a-b);
+}
+let _dlPollT = null;
+async function startAutoDownload() {
+  const years = getDlYrs();
+  const includeOnrc = document.getElementById('dl-onrc').checked;
+  if (!years.length && !includeOnrc) { toast('Select at least one file source', 'err'); return; }
+  const btn = document.getElementById('dl-start-btn');
+  btn.disabled = true; btn.textContent = '⟳ Starting…';
+  document.getElementById('dl-progress').classList.remove('hid');
+  try {
+    const r = await fetch('/api/download/start', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({years, include_onrc: includeOnrc}),
+    });
+    const d = await r.json();
+    if (!d.started) toast(d.message || 'Already downloading', 'info');
+    pollDownload();
+  } catch(e) {
+    toast('Could not start download: ' + e, 'err');
+    btn.disabled = false; btn.textContent = '⬇ Download Selected Files';
+  }
+}
+async function pollDownload() {
+  clearTimeout(_dlPollT);
+  try {
+    const r = await fetch('/api/download/status');
+    const d = await r.json();
+    renderDlProgress(d);
+    const btn = document.getElementById('dl-start-btn');
+    if (d.status === 'downloading') {
+      btn.textContent = '⟳ Downloading…'; btn.disabled = true;
+      _dlPollT = setTimeout(pollDownload, 1000);
+    } else if (d.status === 'done') {
+      btn.textContent = '✓ Downloaded'; btn.disabled = true;
+      toast('Download complete — indexing started automatically', 'ok', 5000);
+      loadSetup();
+    } else if (d.status === 'error') {
+      btn.textContent = '⬇ Download Selected Files'; btn.disabled = false;
+      toast('Download failed: ' + (d.error || 'unknown error'), 'err', 7000);
+    }
+  } catch(e) {
+    _dlPollT = setTimeout(pollDownload, 2000);
+  }
+}
+function renderDlProgress(d) {
+  const el = document.getElementById('dl-progress');
+  if (!el) return;
+  const files = d.files || {};
+  const rows = Object.entries(files).map(([k, f]) => {
+    const pct = f.size ? Math.min(100, Math.round(f.downloaded / f.size * 100)) : (f.status === 'done' ? 100 : 0);
+    const mbD = (f.downloaded / 1e6).toFixed(1), mbT = (f.size / 1e6).toFixed(1);
+    const icon = f.status === 'done' ? '✓' : f.status === 'error' ? '✗' : '⟳';
+    const color = f.status === 'done' ? 'var(--ok)' : f.status === 'error' ? 'var(--err)' : 'var(--pri)';
+    return `<div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3)"><span>${icon} ${f.label}</span><span>${mbD} / ${mbT} MB</span></div>
+      <div style="height:5px;background:var(--pale);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+  const overallPct = d.total_bytes ? Math.min(100, Math.round(d.downloaded_bytes / d.total_bytes * 100)) : 0;
+  el.innerHTML = `<div style="font-size:11.5px;font-weight:700;margin-bottom:8px">${esc(d.message||'')} — ${overallPct}%</div>${rows}`;
 }
 
 // ═══ ONRC Banner ════════════════════════════════════════════════════
@@ -1965,19 +2114,20 @@ function renderBanner() {
     ico.textContent='📁'; ttl.textContent='ONRC Data — Setup Required';
     dsc.innerHTML = `Download the files below from
       <a href="https://data.gov.ro/organization/onrc" target="_blank" rel="noopener">data.gov.ro/organization/onrc</a>
-      and place them in the <code>data/</code> folder, then restart the app.`;
+      (open the newest "Firme" dataset) and place them in the <code>data/</code> folder, then restart the app.`;
     act.innerHTML=`<button class="btn bg bsm" onclick="chipClick()">✕</button>`;
     idxW.classList.add('hid');
     // Show file checklist inline in the banner description area
     const fileList = [
-      {name:'OD_FIRME.csv',                    path:'data/',  desc:'Company registry (large)'},
-      {name:'OD_STARE_FIRMA.csv',               path:'data/',  desc:'Company status codes'},
-      {name:'OD_REPREZENTANTI_LEGALI.csv',      path:'data/',  desc:'Legal representatives'},
-      {name:'nomenclator.csv',                  path:'root',   desc:'Status descriptions'},
+      {k:'firme',      name:'OD_FIRME.csv',                 path:'data/',  desc:'Company registry (large)'},
+      {k:'stare',      name:'OD_STARE_FIRMA.csv',            path:'data/',  desc:'Company status codes'},
+      {k:'reps',       name:'OD_REPREZENTANTI_LEGALI.csv',   path:'data/',  desc:'Legal representatives'},
+      {k:'reps_if',    name:'OD_REPREZENTANTI_IF.csv',       path:'data/',  desc:'Family enterprise reps'},
+      {k:'nomenclator',name:'nomenclator.csv',               path:'root',   desc:'Status descriptions (bundled in repo)'},
     ].map(f => {
-      const ok = (files||{})[f.name.replace('.csv','').toLowerCase().replace('od_','').replace('_legali','_reps').replace('reprezentanti_reps','reps')];
+      const ok = (files||{})[f.k];
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">
-        <span style="color:var(--err);font-weight:700">✗</span>
+        <span style="color:${ok?'var(--ok)':'var(--err)'};font-weight:700">${ok?'✓':'✗'}</span>
         <span style="font-family:var(--mono);font-size:11.5px;font-weight:600">${f.name}</span>
         <span style="color:var(--t4);font-size:11px">→ ${f.path}</span>
         <span style="color:var(--t4);font-size:11px">${f.desc}</span>
