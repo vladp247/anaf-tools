@@ -17,7 +17,10 @@ ANAF client — to avoid binding an async resource to a thread's own event
 loop (see project bug history: threading.Thread + asyncio.run() crashes
 when the resource was created on FastAPI's main loop).
 
-Manually triggered only — never runs automatically on startup.
+Manually triggered only — never runs automatically on startup. Also does
+NOT auto-trigger indexing when the download finishes; that stays a
+separate, explicit "Build Index Now" step so the user chooses when the
+(CPU/IO-heavy) indexing pass runs.
 """
 from __future__ import annotations
 import threading
@@ -219,19 +222,8 @@ def _worker(years: list[int], include_onrc: bool):
                 _upd(message=f"Downloading {info['label']}…")
                 _download_one(client, key, info)
 
-        _upd(status="done", message="Download complete — indexing will start automatically")
+        _upd(status="done", message="Download complete — build the index when you're ready")
         log.info("Data download complete: %d files", len(plan))
-
-        # Auto-trigger indexing for whatever we just fetched.
-        try:
-            if include_onrc:
-                from backend.services.onrc_service import get_onrc
-                get_onrc().start_indexing()
-            if years:
-                from backend.services.caen_service import get_caen
-                get_caen().start_indexing()
-        except Exception as ex:
-            log.warning("Auto-index trigger failed: %s", ex)
 
     except Exception as ex:
         log.error("Data download error: %s", ex, exc_info=True)

@@ -1933,7 +1933,17 @@ function showSetup(d, caen) {
   const sp2s = document.getElementById('sp2-status');
   const idxBtn = document.getElementById('sp-idx-btn');
   const skipBtn = document.getElementById('sp-skip-btn');
-  if (d.indexed) {
+  if (d.index_state?.status === 'indexing') {
+    const st = d.index_state;
+    const pct = st.total > 0 ? Math.round(st.current / st.total * 100) : 0;
+    sp2s.innerHTML = `<span style="color:var(--pri);font-weight:700">⟳ Indexing in progress — ${esc(st.message||'')} (${pct}%)</span>`;
+    idxBtn.textContent = '⟳ Indexing…';
+    idxBtn.disabled = true;
+    idxBtn.onclick = null;
+    skipBtn.classList.remove('hid');
+    skipBtn.textContent = 'Continue in background';
+    pollIdx();
+  } else if (d.indexed) {
     sp2s.innerHTML = `<span style="color:var(--ok);font-weight:700">✓ Index already built — ${N(d.stats?.companies||0)} companies ready</span>`;
     idxBtn.textContent = '✓ Continue';
     idxBtn.disabled = false;
@@ -1945,10 +1955,12 @@ function showSetup(d, caen) {
     idxBtn.disabled = true;
     idxBtn.onclick = spStartIdx;
     skipBtn.classList.remove('hid');
+    skipBtn.textContent = 'Use without index';
   } else {
     sp2s.textContent = 'All CSV files detected. Ready to build index (takes a few minutes, app remains usable).';
     idxBtn.textContent = '▶ Build Index Now';
     idxBtn.disabled = false;
+    skipBtn.textContent = 'Use without index';
     idxBtn.onclick = spStartIdx;
     skipBtn.classList.remove('hid');
   }
@@ -2027,8 +2039,9 @@ async function pollDownload() {
       _dlPollT = setTimeout(pollDownload, 1000);
     } else if (d.status === 'done') {
       btn.textContent = '✓ Downloaded'; btn.disabled = true;
-      toast('Download complete — indexing started automatically', 'ok', 5000);
-      loadSetup();
+      toast('Download complete — build the index when you\'re ready', 'ok', 5000);
+      await loadSetup();
+      goSp2();
     } else if (d.status === 'error') {
       btn.textContent = '⬇ Download Selected Files'; btn.disabled = false;
       toast('Download failed: ' + (d.error || 'unknown error'), 'err', 7000);
