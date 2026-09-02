@@ -119,41 +119,70 @@ def get_caen_resources(client: httpx.Client, year: int) -> dict[str, dict]:
     # data.gov.ro's dataset slugs aren't perfectly consistent year to year —
     # 2023's is "situatii_financiare2023" (no underscore) while every other
     # year is "situatii_financiare_{year}". Try both.
-    pkg = None
+    base_pkg = None
     last_err: Exception | None = None
     for slug in (f"situatii_financiare_{year}", f"situatii_financiare{year}"):
         try:
-            pkg = _ckan_get(client, "package_show", id=slug)
+            base_pkg = _ckan_get(client, "package_show", id=slug)
             break
         except Exception as ex:
             last_err = ex
-    if pkg is None:
+    if base_pkg is None:
         raise RuntimeError(f"No situatii_financiare dataset found for {year}: {last_err}")
+
+    # ANAF periodically republishes a corrected/updated ("actualizat") version
+    # of a year's filings after late/amended submissions come in — either as
+    # extra resources inside the base package (2023: "WEB_IR_AN2023 -
+    # actualizat") or as a whole separate dataset (2024: a distinct
+    # "..._actualizat" package). We prefer actualizat data when it exists,
+    # since it's strictly the same fiscal year with more complete filings.
+    packages: list[tuple[dict, bool]] = [(base_pkg, False)]
+    for slug in (f"situatii_financiare_{year}_actualizat", f"situatii_financiare{year}_actualizat"):
+        try:
+            packages.append((_ckan_get(client, "package_show", id=slug), True))
+            break
+        except Exception:
+            continue  # no corrected republish for this year — fine
 
     wanted = {
         key: template.format(year=year)
         for key, template, desc, pri in Config.CAEN_FILE_DEFS
         if not Config.CAEN_KNOWN_MISSING.get((key, year))
     }
-    found: dict[str, dict] = {}
-    for res in pkg.get("resources", []):
-        if (res.get("format") or "").upper() != "TXT":
-            continue
-        name_lower = res["name"].strip().lower()
-        for key, filename in wanted.items():
-            if key in found:
+    candidates: dict[str, list[dict]] = {k: [] for k in wanted}
+    for pkg, pkg_is_actualizat in packages:
+        for res in pkg.get("resources", []):
+            if (res.get("format") or "").upper() != "TXT":
                 continue
-            fn_lower = filename.lower()
-            # Some years drop the "_an" infix (e.g. 2024's WEB_IR_2024.txt
-            # instead of WEB_IR_AN2024.txt) — accept that variant too.
-            fn_alt = fn_lower.replace("_an", "_", 1)
-            if name_lower in (fn_lower, fn_alt):
-                found[f"{key}_{year}"] = {
-                    "label": filename,
-                    "url": res["url"],
-                    "size": res.get("size") or 0,
-                    "dest": Config.DATA_DIR / filename,
-                }
+            name_lower = res["name"].strip().lower()
+            for key, filename in wanted.items():
+                fn_lower = filename.lower()
+                # Some years drop the "_an" infix (e.g. 2024's WEB_IR_2024.txt
+                # instead of WEB_IR_AN2024.txt) — accept that variant too.
+                fn_alt = fn_lower.replace("_an", "_", 1)
+                stem, stem_alt = fn_lower.rsplit(".", 1)[0], fn_alt.rsplit(".", 1)[0]
+                name_is_actualizat = "actualizat" in name_lower
+                is_match = (
+                    name_lower in (fn_lower, fn_alt)
+                    or ((name_lower.startswith(stem) or name_lower.startswith(stem_alt))
+                        and name_is_actualizat)
+                )
+                if is_match:
+                    candidates[key].append({
+                        "label": filename,
+                        "url": res["url"],
+                        "size": res.get("size") or 0,
+                        "dest": Config.DATA_DIR / filename,
+                        "actualizat": pkg_is_actualizat or name_is_actualizat,
+                    })
+
+    found: dict[str, dict] = {}
+    for key, matches in candidates.items():
+        if not matches:
+            continue
+        # Prefer the actualizat (corrected/updated) version; size only breaks ties.
+        best = max(matches, key=lambda m: (m["actualizat"], m["size"]))
+        found[f"{key}_{year}"] = {k: v for k, v in best.items() if k != "actualizat"}
     return found
 
 
